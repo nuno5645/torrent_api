@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamPlex - Modern Streaming Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0a192f;
+            color: #fff;
+        }
+
+        .navbar {
+            background-color: rgba(10, 25, 47, 0.8);
+            backdrop-filter: blur(10px);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+    
+        .navbar.scrolled {
+            background-color: rgba(10, 25, 47, 0.95);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+    
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+    
+        .nav-link {
+            color: #8892b0;
+            text-decoration: none;
+            transition: color 0.3s ease;
+            position: relative;
+            padding: 5px 0;
+        }
+    
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: #64ffda;
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.3s ease;
+        }
+    
+        .nav-link:hover::after,
+        .nav-link.active::after {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
+    
+        .nav-link:hover,
+        .nav-link.active {
+            color: #64ffda;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        main {
+            padding: 100px 50px 50px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .search-bar {
+            background-color: #64ffda;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .search-bar:hover {
+            transform: scale(1.1);
+        }
+
+        .movie-row {
+            margin-bottom: 40px;
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .row-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .row-title {
+            font-size: 24px;
+            color: #64ffda;
+        }
+
+        .see-all {
+            color: #8892b0;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .see-all:hover {
+            color: #64ffda;
+        }
+
+        .movie-slider {
+            display: flex;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            padding: 20px 0;
+        }
+
+        .movie-card {
+            flex: 0 0 auto;
+            width: 200px;
+            height: 300px;
+            margin-right: 20px;
+            position: relative;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(100, 255, 218, 0.1);
+        }
+
+        .movie-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px rgba(100, 255, 218, 0.2);
+        }
+
+        .movie-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .movie-poster {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 0.3s ease;
+        }
+
+        .movie-card:hover .movie-poster {
+            transform: scale(1.05);
+        }
+
+        .movie-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 15px;
+            background: linear-gradient(to top, rgba(10, 25, 47, 0.9), transparent);
+            transform: translateY(100%);
+            transition: all 0.3s ease;
+        }
+
+        .movie-card:hover .movie-info {
+            transform: translateY(0);
+        }
+
+        .movie-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #64ffda;
+        }
+
+        .movie-genre {
+            font-size: 14px;
+            color: #8892b0;
+        }
+
+        .rating {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #64ffda;
+            color: #0a192f;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .slider-control {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(100, 255, 218, 0.5);
+            color: #0a192f;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .slider-control:hover {
+            background-color: rgba(100, 255, 218, 0.8);
+        }
+
+        .slider-control.left {
+            left: -20px;
+        }
+
+        .slider-control.right {
+            right: -20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">StreamPlex</div>
+        <div class="nav-links">
+            <a href="{% url 'homepage' %}" class="nav-link">Home</a>
+            <a href="{% url 'trending' %}" class="nav-link">Trending</a>
+            <a href="#" class="nav-link">New</a>
+            <a href="#" class="nav-link">My List</a>
+        </div>
+        <div class="user-profile">
+            <img src="https://via.placeholder.com/40" alt="User Profile">
+            <span>Hi, User</span>
+        </div>
+    </nav>
+
+    <main>
+        <div class="header">
+            <h1>Welcome to StreamPlex</h1>
+            <div class="search-bar">🔍</div>
+        </div>
+        <div id="movieRows">
+            {{ new_on_stremio|json_script:"new_on_stremio" }}
+            {{ recommended_new|json_script:"recommended_new" }}
+            {{ weekend_box_office|json_script:"weekend_box_office" }}
+        </div>
+    </main>
+
+    <script>
+        // Function to create movie rows
+        function createMovieRow(title, movies) {
+            const rowHTML = `
+                <div class="movie-row">
+                    <div class="row-header">
+                        <h2 class="row-title">${title}</h2>
+                        <a href="#" class="see-all">See All</a>
+                    </div>
+                    <div class="movie-slider">
+                        ${movies.map(movie => `
+                            <div class="movie-card" onclick="window.location.href='/${movie.tmdb_id}'">
+                                <div class="movie-card-inner">
+                                    <img class="movie-poster" src="https://image.tmdb.org/t/p/w200${movie.poster_path || ''}" alt="${movie.title}">
+                                    <div class="movie-info">
+                                        <div class="movie-title">${movie.title}</div>
+                                        <div class="movie-genre">${movie.mediatype}</div>
+                                    </div>
+                                    <div class="rating">${movie.vote_average.toFixed(1)}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="slider-control left" onclick="slide(this, -1)">❮</button>
+                    <button class="slider-control right" onclick="slide(this, 1)">❯</button>
+                </div>
+            `;
+            return rowHTML;
+        }
+
+        // Main function to populate the page
+        function populatePage() {
+            const movieRowsContainer = document.getElementById('movieRows');
+            
+            const newOnStremio = JSON.parse(document.getElementById('new_on_stremio').textContent);
+            const recommendedNew = JSON.parse(document.getElementById('recommended_new').textContent);
+            const weekendBoxOffice = JSON.parse(document.getElementById('weekend_box_office').textContent);
+
+            movieRowsContainer.innerHTML += createMovieRow("New on Stremio", newOnStremio);
+            movieRowsContainer.innerHTML += createMovieRow("Recommended New", recommendedNew);
+            movieRowsContainer.innerHTML += createMovieRow("Weekend Box Office", weekendBoxOffice);
+        }
+
+        // Function to slide the movie row
+        function slide(button, direction) {
+            const slider = button.parentElement.querySelector('.movie-slider');
+            const sliderWidth = slider.clientWidth;
+            const scrollAmount = sliderWidth * 0.8 * direction;
+            slider.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        }
+
+        // Call the main function when the page loads
+        window.addEventListener('load', populatePage);
+
+        // Dynamic navbar
+        window.addEventListener('scroll', () => {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+    </script>
+</body>
+</html>

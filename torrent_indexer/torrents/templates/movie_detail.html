@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ movie.title }} - Movie Detail</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0F1319;
+            --text-color: #FFFFFF;
+            --accent-blue: #7FDBFF;
+            --accent-pink: #FF85A2;
+            --accent-green: #98FB98;
+            --accent-purple: #B19CD9;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .container-fluid {
+            padding: 0;
+            height: 100%;
+        }
+
+        .sidebar {
+            width: 80px;
+            height: 100%;
+            background-color: #1A202C;
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: fixed;
+            transition: width 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar:hover {
+            width: 200px;
+        }
+
+        .sidebar-icon {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .sidebar-icon:hover {
+            background-color: var(--accent-blue);
+            color: var(--bg-color);
+        }
+
+        .main-content {
+            margin-left: 80px;
+            padding: 20px;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .top-bar {
+            background-color: rgba(26, 32, 44, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .search-bar {
+            max-width: 600px;
+            border-radius: 30px;
+            background-color: #2D3748;
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+
+        .search-bar:focus {
+            box-shadow: 0 0 0 3px var(--accent-blue);
+        }
+
+        .user-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--accent-pink);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .user-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .movie-header {
+            display: flex;
+            margin-bottom: 30px;
+            gap: 30px;
+        }
+
+        .movie-poster {
+            flex: 0 0 auto;
+            width: 300px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .movie-poster img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .movie-info {
+            flex: 1;
+        }
+
+        .movie-title {
+            font-size: 36px;
+            margin-bottom: 10px;
+            color: var(--accent-blue);
+        }
+
+        .movie-meta {
+            font-size: 18px;
+            color: var(--accent-green);
+            margin-bottom: 20px;
+        }
+
+        .movie-description {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .movie-cast {
+            margin-bottom: 20px;
+        }
+
+        .cast-title {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: var(--accent-purple);
+        }
+
+        .cast-list {
+            display: flex;
+            overflow-x: auto;
+            gap: 20px;
+            padding-bottom: 10px;
+        }
+
+        .cast-member {
+            flex: 0 0 auto;
+            text-align: center;
+            width: 100px;
+        }
+
+        .cast-photo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .cast-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .cast-name {
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .watch-button {
+            background-color: var(--accent-pink);
+            color: var(--bg-color);
+            border: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .watch-button:hover {
+            background-color: #FF6B8E;
+        }
+
+        .watch-button:disabled {
+            background-color: #888;
+            cursor: not-allowed;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #fff;
+            border-top: 5px solid var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .button-text {
+            position: relative;
+            z-index: 1;
+        }
+
+        .button-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background-color: var(--accent-blue);
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: 60px;
+                flex-direction: row;
+                justify-content: space-around;
+                position: fixed;
+                bottom: 0;
+            }
+
+            .sidebar:hover {
+                width: 100%;
+            }
+
+            .sidebar-icon {
+                margin-bottom: 0;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding-bottom: 80px;
+            }
+
+            .movie-header {
+                flex-direction: column;
+            }
+
+            .movie-poster {
+                width: 100%;
+                max-width: 300px;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row h-100">
+            <nav class="sidebar col-auto">
+                <a href="{% url 'hello' %}"><div class="sidebar-icon">🏠</div></a>
+                <div class="sidebar-icon">🎬</div>
+                <div class="sidebar-icon">📺</div>
+                <div class="sidebar-icon">🔖</div>
+                <div class="sidebar-icon">⚙️</div>
+            </nav>
+            <main class="main-content col">
+                <div class="top-bar">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <input type="text" class="form-control search-bar" placeholder="Search movies and TV shows...">
+                        </div>
+                        <div class="col-auto">
+                            <div class="user-icon"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="movie-header">
+                    <div class="movie-poster">
+                        <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" alt="{{ movie.title }} Poster">
+                    </div>
+                    <div class="movie-info">
+                        <h1 class="movie-title">{{ movie.title }}</h1>
+                        <div class="movie-meta">
+                            {{ movie.release_date|slice:":4" }} | 
+                            {% for genre in movie.genres %}
+                                {{ genre.name }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %} | 
+                            {{ movie.runtime }} min | ⭐ {{ movie.vote_average|floatformat:1 }}
+                        </div>
+                        <p class="movie-description">{{ movie.overview }}</p>
+                        {% csrf_token %}
+                        <button class="watch-button" data-csrf-token="{{ csrf_token }}">
+                            <span class="button-background"></span>
+                            <span class="button-text">Watch Now</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="movie-cast">
+                    <h2 class="cast-title">Cast</h2>
+                    <div class="cast-list">
+                        {% for actor in cast %}
+                        <div class="cast-member">
+                            <div class="cast-photo">
+                                <img src="https://image.tmdb.org/t/p/w200{{ actor.profile_path }}" alt="{{ actor.name }}">
+                            </div>
+                            <div class="cast-name">{{ actor.name }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div class="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Bootstrap JS (optional, but needed for some Bootstrap features) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const watchButton = document.querySelector('.watch-button');
+            const buttonBackground = watchButton.querySelector('.button-background');
+            const buttonText = watchButton.querySelector('.button-text');
+            const loadingOverlay = document.querySelector('.loading-overlay');
+            
+            watchButton.addEventListener('click', function() {
+                const movieTitle = "{{ movie.title }}";
+                const csrfToken = this.getAttribute('data-csrf-token');
+                
+                // Start button animation
+                buttonBackground.style.width = '100%';
+                buttonText.textContent = 'Loading...';
+                
+                // Show loading overlay
+                loadingOverlay.classList.add('active');
+                
+                fetch("{% url 'movie_detail' movie.id %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: `movie_title=${encodeURIComponent(movieTitle)}`
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else if (data.error) {
+                        alert(data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while trying to fetch the streaming link.');
+                })
+                .finally(() => {
+                    // Reset button and hide loading overlay
+                    buttonBackground.style.width = '0';
+                    buttonText.textContent = 'Watch Now';
+                    loadingOverlay.classList.remove('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
