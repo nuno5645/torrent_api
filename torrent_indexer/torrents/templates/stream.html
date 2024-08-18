@@ -206,6 +206,9 @@
                     data-setup="{}"
                 >
                     <source src="{{ stream_url }}" type="video/mp4" />
+                    {% for subtitle in subtitles %}
+                        <track kind="captions" src="{{ subtitle.url }}" srclang="{{ subtitle.lang }}" label="{{ subtitle.lang }}" />
+                    {% endfor %}
                     <p class="vjs-no-js">
                         To view this video please enable JavaScript, and consider upgrading to a
                         web browser that

@@ -1,0 +1,17 @@
+myproject_env/
+torrent_libs/
+.vscode/
+.idea/
+.DS_Store
+.vscode/
+.idea/
+.DS_Store
+*__pycache__/
+*.srt
+*.vtt
+*.srt
+*.vtt
+*.csv
+*.pyc
+*.parquet
+*.txt

@@ -2,16 +2,13 @@ import requests
 from bs4 import BeautifulSoup
 from typing import List, Union
 from datetime import datetime
-import psutil
 
 class OpenSubtitlesClient:
     def __init__(self):
         self.OPENSUBTITLE_URL = "https://www.opensubtitles.org/en/search/sublanguageid-all"
 
     def get_api_info(self):
-        process = psutil.Process()
-        rss = process.memory_info().rss / (1024**2)  # RSS in MB
-        vms = process.memory_info().vms / (1024**2)  # VMS in MB
+
         server_location = self.fetch_server_location()
 
         return {
@@ -20,8 +17,6 @@ class OpenSubtitlesClient:
             "endpoint": "https://github.com/Snowball-01/OpenSubtitles-API",
             "developer": "https://t.me/Snowball_Official",
             "date": datetime.now().strftime("%m/%d/%Y, %I:%M:%S %p"),
-            "rss": f"{rss:.2f} MB",
-            "heap": f"{vms:.2f} MB",
             "server": server_location,
             "version": "1.0.0",
         }

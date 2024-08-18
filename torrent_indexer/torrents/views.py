@@ -1,25 +1,40 @@
 import json
+import time
+import zipfile
+import io
+import tempfile
+import re
+import os
+from django.conf import settings
+import webvtt
+
 import requests
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.forms import AuthenticationForm
-from django.http import StreamingHttpResponse, HttpResponse, JsonResponse
+from django.core.cache import cache
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
-from django.views import View
-from django.core.cache import cache
-from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
-import time
+from django.views import View
+from django.views.decorators.cache import cache_page
+from urllib.parse import unquote
+
 from .RD import RealDebridAPI
 from .torrent_api import TorrentAPI
-import os
+from .opensubtitles import OpenSubtitlesClient
+
 
 class HomePageView(View):
     @method_decorator(cache_page(60 * 15))  # Cache for 15 minutes
     def get(self, request):
         print("Homepage requested")
         
-        new_on_stremio = self.get_cached_data("new_on_stremio", "https://mdblist.com/lists/zeroq/new-on-stremio/json")
+        # new_on_stremio = self.get_cached_data("new_on_stremio", "https://mdblist.com/lists/zeroq/new-on-stremio/json")
+        new_on_stremio = self.get_cached_data("new_on_stremio", "https://mdblist.com/lists/linaspurinis/top-watched-movies-of-the-week/json")
+
         recommended_new = self.get_cached_data("recommended_new", "https://mdblist.com/lists/zeroq/recommended-new-on-stremio/json")
         weekend_box_office = self.get_cached_data("weekend_box_office", "https://mdblist.com/lists/zeroq/weekend-box-office/json")
 
@@ -158,7 +173,8 @@ class MovieDetailView(View):
         movie_title = request.POST.get('movie_title')
         print(f"Received movie title: {movie_title}")
         
-
+        subtitles = self.fetch_subtitles(movie_title)
+        print(f"Subtitles: {subtitles}")
         # Step 1: Search for the video using TorrentAPI
         torrent_api = TorrentAPI()
         print("Searching for torrents...")
@@ -217,7 +233,6 @@ class MovieDetailView(View):
                 print("Waiting for torrent to finish...")
                 file_info = rd_api.get_torrent_info(torrent_id)
                 print(f"File info after waiting: {file_info}")
-
                 # Get streaming link
                 if file_info['status'] == 'downloaded':
                     streaming_link = file_info['links'][0]
@@ -225,13 +240,82 @@ class MovieDetailView(View):
                     print(f"Unrestricted link: {unrestricted_link}")
 
                     # Redirect to VideoStreamView with the streaming URL
-                    return JsonResponse({'redirect': reverse('video_stream', kwargs={'video_url': unrestricted_link['download']})})
+                    return JsonResponse({
+                        'redirect': reverse('video_stream', kwargs={'video_url': unrestricted_link['download']}) + 
+                                    f'?title={movie_title}&subtitles={",".join([sub["url"] for sub in subtitles])}'
+                    })
 
             except Exception as e:
                 print(f"Error processing magnet link: {str(e)}")
 
         # If no successful result found
         return JsonResponse({'error': 'No suitable torrent found or error occurred'}, status=400)
+    
+    def fetch_subtitles(self, movie_title):
+        client = OpenSubtitlesClient()
+        movie_results = client.get_query_results(movie_title)
+        
+        if not movie_results:
+            return []
+
+        first_movie = movie_results[0]
+        movie_id = first_movie.get('id')
+        
+        if not movie_id:
+            return []
+
+        subtitles = client.get_subtitles_by_id(movie_id)
+        processed_subtitles = []
+
+        for sub in subtitles:
+            if sub.get('lang') in ['English', 'Portuguese'] and len(processed_subtitles) < 2:
+                download_url = sub.get('download')
+                if download_url:
+                    try:
+                        # Download the zip file
+                        response = requests.get(download_url)
+                        response.raise_for_status()
+
+                        # Extract the subtitle file from the zip
+                        with zipfile.ZipFile(io.BytesIO(response.content)) as z:
+                            subtitle_file = z.namelist()[0]  # Assume the first file is the subtitle
+                            subtitle_content = z.read(subtitle_file)
+
+                        # Save SRT content to a temporary file
+                        with tempfile.NamedTemporaryFile(mode='w+', suffix='.srt', delete=False, encoding='utf-8') as temp_srt:
+                            temp_srt.write(subtitle_content.decode('utf-8'))
+                            temp_srt_path = temp_srt.name
+
+                        # Convert SRT to WebVTT
+                        vtt = webvtt.from_srt(temp_srt_path)
+
+                        # Save the WebVTT file
+                        subtitle_dir = os.path.join(settings.MEDIA_ROOT, 'subtitles')
+                        os.makedirs(subtitle_dir, exist_ok=True)
+                        file_name = f"{movie_title.replace(' ', '_')}_{sub['lang']}.vtt"
+                        file_path = os.path.join(subtitle_dir, file_name)
+                        
+                        vtt.save(file_path)
+
+                        # Remove the temporary SRT file
+                        os.unlink(temp_srt_path)
+
+                        # Generate the URL for the subtitle file
+                        subtitle_url = f"{settings.MEDIA_URL}subtitles/{file_name}"
+
+                        processed_subtitles.append({
+                            'lang': sub['lang'],
+                            'url': subtitle_url
+                        })
+                        
+                        print(f"\033[92mProcessed subtitle: {processed_subtitles[-1]}\033[0m")
+
+                    except Exception as e:
+                        print(f"Error processing subtitle: {str(e)}")
+                        continue
+
+        return processed_subtitles
+
 
 class VideoStreamView(View):
     def get(self, request, video_url):
@@ -241,8 +325,19 @@ class VideoStreamView(View):
         except requests.RequestException as e:
             return HttpResponse(f"Error fetching video: {str(e)}", status=500)
 
-        # Pass the video URL to the template for the video source
-        return render(request, 'stream.html', {'stream_url': video_url})
+        # Get subtitles from URL parameters
+        subtitle_urls = request.GET.get('subtitles', '').split(',')
+        subtitles = [
+            {'lang': 'English', 'url': unquote(url)} if i == 0 else {'lang': 'Portuguese', 'url': unquote(url)}
+            for i, url in enumerate(subtitle_urls) if url
+        ]
+
+        # Pass the video URL and subtitles to the template
+        context = {
+            'stream_url': video_url,
+            'subtitles': subtitles
+        }
+        return render(request, 'stream.html', context)
 
     def stream_video(self, response):
         for chunk in response.iter_content(chunk_size=8192):
