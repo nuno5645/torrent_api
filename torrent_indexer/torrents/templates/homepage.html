@@ -340,6 +340,31 @@
         .slider-control.right {
             right: -20px;
         }
+
+        /* New styles for mobile responsiveness */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .header h1 {
+                display: none;
+            }
+
+            .search-container {
+                width: 100%;
+                margin-top: 20px;
+            }
+
+            .search-input {
+                width: 100%;
+            }
+
+            .search-input:focus {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
