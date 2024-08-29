@@ -15,7 +15,6 @@ class PirateBay:
         try:
             for html in htmls:
                 soup = BeautifulSoup(html, "html.parser")
-
                 my_dict = {"data": []}
                 for tr in soup.find_all("tr")[1:]:
                     td = tr.find_all("td")
@@ -32,6 +31,13 @@ class PirateBay:
                         category = td[0].find_all("a")[0].text
                         uploader = td[7].text
                         dateUploaded = td[2].text
+                        
+                        #go to the url and get the quality, codec and file_extension
+                        async with aiohttp.ClientSession() as session:
+                            response = await session.get(url)
+                            html = await response.text()
+                            soup = BeautifulSoup(html, "html.parser")
+                            print(soup)
                            
                         my_dict["data"].append(
                             {

@@ -100,17 +100,19 @@ class OpenSubtitlesClient:
 
             description_span = el.find("span", attrs={"class": "p"})
             description = "".join(description_span.stripped_strings) if description_span else ""
-
-            query_result = {
-                "id": el.get("onclick").split("/")[-1].replace("')", ""),
+            try:
+                query_result = {
+                    "id": el.get("onclick").split("/")[-1].replace("')", ""),
                 "title": clean_title,
                 "description": description,
                 "image": f"https://{el.find('img')['src'][2:]}",
                 "imdb": f'{el.find("td", attrs={"align": "center"}).text}/10',
                 "url": f'https://www.opensubtitles.org{el.find("a")["href"]}',
-            }
-            data.append(query_result)
+                }
+                data.append(query_result)
+            except Exception as e:
+                print(f"Error processing subtitle: {str(e)}")
+                continue
             
-            # print(data)
 
         return data

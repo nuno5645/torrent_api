@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flix 🏴‍☠️ - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0a192f;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #particles-js {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .login-container {
+            background-color: rgba(10, 25, 47, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 4px 30px rgba(100, 255, 218, 0.3);
+            width: 100%;
+            max-width: 400px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            font-size: 36px;
+            text-align: center;
+            margin-bottom: 30px;
+            color: #64ffda;
+            text-shadow: 0 0 10px rgba(100, 255, 218, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .form-group label {
+            position: absolute;
+            left: 12px;
+            top: 12px;
+            color: #8892b0;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group input:not(:placeholder-shown) {
+            border-color: #64ffda;
+            box-shadow: 0 0 15px rgba(100, 255, 218, 0.3);
+        }
+
+        .form-group input:focus + label,
+        .form-group input:not(:placeholder-shown) + label {
+            transform: translateY(-25px) scale(0.8);
+            color: #64ffda;
+        }
+
+        .form-group .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 12px;
+            cursor: pointer;
+            color: #8892b0;
+            transition: all 0.3s ease;
+        }
+
+        .form-group .toggle-password:hover {
+            color: #64ffda;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .forgot-password {
+            display: block;
+            text-align: right;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #64ffda;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .forgot-password:hover {
+            color: #4ecdc4;
+            text-shadow: 0 0 5px rgba(100, 255, 218, 0.5);
+        }
+
+        .btn-success {
+            width: 100%;
+            padding: 12px;
+            background-color: #64ffda;
+            color: #0a192f;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-success:hover {
+            background-color: #4ecdc4;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(100, 255, 218, 0.4);
+        }
+
+        .btn-success::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1, 1) translate(-50%);
+            transform-origin: 50% 50%;
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(0, 0);
+                opacity: 1;
+            }
+            20% {
+                transform: scale(25, 25);
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+                transform: scale(40, 40);
+            }
+        }
+
+        .btn-success:focus:not(:active)::after {
+            animation: ripple 1s ease-out;
+        }
+
+        .additional-links {
+            margin-top: 25px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .additional-links a {
+            color: #8892b0;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .additional-links a::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            bottom: -2px;
+            left: 0;
+            background-color: #64ffda;
+            transform: scaleX(0);
+            transform-origin: bottom right;
+            transition: transform 0.3s ease;
+        }
+
+        .additional-links a:hover {
+            color: #64ffda;
+        }
+
+        .additional-links a:hover::after {
+            transform: scaleX(1);
+            transform-origin: bottom left;
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+            animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="particles-js"></div>
+    <div class="login-container">
+        <div class="logo">Flix 🏴‍☠️</div>
+        <form method="post" id="loginForm">
+            {% csrf_token %}
+            <div class="form-group">
+                <input type="text" id="{{ form.login.id_for_label }}" name="{{ form.login.html_name }}" placeholder=" ">
+                <label for="{{ form.login.id_for_label }}">Username</label>
+                <div class="error-message" id="usernameError"></div>
+            </div>
+            <div class="form-group">
+                <input type="password" id="{{ form.password.id_for_label }}" name="{{ form.password.html_name }}" placeholder=" ">
+                <label for="{{ form.password.id_for_label }}">Password</label>
+                <span class="toggle-password" onclick="togglePassword()">👁️</span>
+                <div class="error-message" id="passwordError"></div>
+            </div>
+            <a href="{% url 'account_reset_password' %}" class="forgot-password">Forgot your password?</a>
+            <div class="checkbox-group">
+                {{ form.remember }}
+                <label for="{{ form.remember.id_for_label }}">Remember Me</label>
+            </div>
+            <button class="btn btn-success" type="submit">Log in</button>
+        </form>
+        <div class="additional-links">
+            <a href="{% url 'account_signup' %}">Sign Up</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 80, density: { enable: true, value_area: 800 } },
+                color: { value: "#64ffda" },
+                shape: { type: "circle" },
+                opacity: { value: 0.5, random: true },
+                size: { value: 3, random: true },
+                line_linked: { enable: true, distance: 150, color: "#64ffda", opacity: 0.4, width: 1 },
+                move: { enable: true, speed: 2, direction: "none", random: true, straight: false, out_mode: "out" }
+            },
+            interactivity: {
+                detect_on: "canvas",
+                events: { onhover: { enable: true, mode: "repulse" }, onclick: { enable: true, mode: "push" } },
+                modes: { repulse: { distance: 100, duration: 0.4 }, push: { particles_nb: 4 } }
+            }
+        });
+
+        function togglePassword() {
+            const passwordInput = document.getElementById('{{ form.password.id_for_label }}');
+            const toggleBtn = document.querySelector('.toggle-password');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleBtn.textContent = '🙈';
+            } else {
+                passwordInput.type = 'password';
+                toggleBtn.textContent = '👁️';
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('{{ form.login.id_for_label }}').value;
+            const password = document.getElementById('{{ form.password.id_for_label }}').value;
+            let isValid = true;
+
+            if (!username) {
+                document.getElementById('usernameError').textContent = 'Username is required';
+                document.getElementById('usernameError').style.display = 'block';
+                isValid = false;
+            } else {
+                document.getElementById('usernameError').style.display = 'none';
+            }
+
+            if (!password) {
+                document.getElementById('passwordError').textContent = 'Password is required';
+                document.getElementById('passwordError').style.display = 'block';
+                isValid = false;
+            } else {
+                document.getElementById('passwordError').style.display = 'none';
+            }
+
+            if (isValid) {
+                this.submit();
+            }
+        });
+
+        // Ripple effect on button click
+        document.querySelector('.btn-success').addEventListener('mousedown', function(e) {
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple';
+            this.appendChild(ripple);
+            const rect = this.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = e.clientX - rect.left - size / 2 + 'px';
+            ripple.style.top = e.clientY - rect.top - size / 2 + 'px';
+            ripple.classList.add('show');
+            setTimeout(() => ripple.remove(), 700);
+        });
+    </script>
+</body>
+</html>

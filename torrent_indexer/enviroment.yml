@@ -1,0 +1,21 @@
+name: nuno
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - pip>=19.0
+  - django=4.2
+  - requests
+  - beautifulsoup4
+  - lxml
+  - pandas
+  - pillow
+  - tqdm
+  - h5py
+  - pyyaml
+  - boto3
+  - libffi
+  - pip:
+    - webvtt-py
+    - django-allauth

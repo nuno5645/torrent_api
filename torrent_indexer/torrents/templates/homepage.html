@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamPlex - Modern Streaming Platform</title>
+    <title>Flix 🏴‍☠️ - Modern Streaming Platform</title>
     <style>
         * {
             margin: 0;
@@ -97,20 +97,107 @@
             margin-bottom: 30px;
         }
 
-        .search-bar {
-            background-color: #64ffda;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
+        .search-container {
+            position: relative;
             display: flex;
-            justify-content: center;
             align-items: center;
-            cursor: pointer;
+        }
+
+        .search-input {
+            background-color: rgba(100, 255, 218, 0.1);
+            border: 2px solid #64ffda;
+            border-radius: 25px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            width: 250px;
             transition: all 0.3s ease;
         }
 
-        .search-bar:hover {
-            transform: scale(1.1);
+        .search-input:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(100, 255, 218, 0.5);
+            width: 300px;
+        }
+
+        .search-button {
+            background: none;
+            border: none;
+            color: #64ffda;
+            font-size: 20px;
+            cursor: pointer;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #1A202C;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+
+        .search-results.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .search-results ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .search-results li {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            border-bottom: 1px solid rgba(100, 255, 218, 0.1);
+        }
+
+        .search-results li:last-child {
+            border-bottom: none;
+        }
+
+        .search-results li:hover,
+        .search-results li:focus {
+            background-color: rgba(100, 255, 218, 0.1);
+            outline: none;
+        }
+
+        .search-results img {
+            width: 60px;
+            height: 90px;
+            object-fit: cover;
+            margin-right: 15px;
+            border-radius: 5px;
+        }
+
+        .search-results h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #64ffda;
+        }
+
+        .search-results p {
+            margin: 5px 0 0;
+            font-size: 14px;
+            color: #8892b0;
         }
 
         .movie-row {
@@ -257,74 +344,61 @@
 </head>
 <body>
     <nav class="navbar">
-        <div class="logo">StreamPlex</div>
+        <div class="logo">Flix 🏴‍☠️</div>
         <div class="nav-links">
             <a href="{% url 'homepage' %}" class="nav-link">Home</a>
             <a href="{% url 'trending' %}" class="nav-link">Trending</a>
-            <a href="#" class="nav-link">New</a>
-            <a href="#" class="nav-link">My List</a>
+            {% comment %} {% if user.is_authenticated %}
+                <a href="{% url 'watchlist' %}" class="nav-link">My List</a>
+            {% endif %} {% endcomment %}
         </div>
         <div class="user-profile">
-            <img src="https://via.placeholder.com/40" alt="User Profile">
-            <span>Hi, User</span>
+            {% if user.is_authenticated %}
+                <span>Hi, {{ user.username }}</span>
+            {% else %}
+                <a href="{% url 'login' %}" class="nav-link">Login</a>
+                <a href="{% url 'signup' %}" class="nav-link">Sign Up</a>
+            {% endif %}
         </div>
     </nav>
-
     <main>
         <div class="header">
-            <h1>Welcome to StreamPlex</h1>
-            <div class="search-bar">🔍</div>
+            <h1>Welcome to Flix 🏴‍☠️</h1>
+            <div class="search-container">
+                <input type="text" id="search-input" class="search-input" placeholder="Search movies..." aria-label="Search movies">
+                <button id="search-button" class="search-button" aria-label="Search">🔍</button>
+                <div id="search-results" class="search-results"></div>
+            </div>
         </div>
         <div id="movieRows">
-            {{ new_on_stremio|json_script:"new_on_stremio" }}
-            {{ recommended_new|json_script:"recommended_new" }}
-            {{ weekend_box_office|json_script:"weekend_box_office" }}
-        </div>
-    </main>
-
-    <script>
-        // Function to create movie rows
-        function createMovieRow(title, movies) {
-            const rowHTML = `
+            {% for movie_list in movie_lists %}
                 <div class="movie-row">
                     <div class="row-header">
-                        <h2 class="row-title">${title}</h2>
+                        <h2 class="row-title">{{ movie_list.title }}</h2>
                         <a href="#" class="see-all">See All</a>
                     </div>
                     <div class="movie-slider">
-                        ${movies.map(movie => `
-                            <div class="movie-card" onclick="window.location.href='/${movie.tmdb_id}'">
+                        {% for movie in movie_list.movies %}
+                            <div class="movie-card" onclick="window.location.href='/{{ movie.tmdb_id }}'">
                                 <div class="movie-card-inner">
-                                    <img class="movie-poster" src="https://image.tmdb.org/t/p/w200${movie.poster_path || ''}" alt="${movie.title}">
+                                    <img class="movie-poster" src="https://image.tmdb.org/t/p/w200{{ movie.poster_path|default:'' }}" alt="{{ movie.title }}">
                                     <div class="movie-info">
-                                        <div class="movie-title">${movie.title}</div>
-                                        <div class="movie-genre">${movie.mediatype}</div>
+                                        <div class="movie-title">{{ movie.title }}</div>
+                                        <div class="movie-genre">{{ movie.mediatype }}</div>
                                     </div>
-                                    <div class="rating">${movie.vote_average.toFixed(1)}</div>
+                                    <div class="rating">{{ movie.vote_average|floatformat:1 }}</div>
                                 </div>
                             </div>
-                        `).join('')}
+                        {% endfor %}
                     </div>
                     <button class="slider-control left" onclick="slide(this, -1)">❮</button>
                     <button class="slider-control right" onclick="slide(this, 1)">❯</button>
                 </div>
-            `;
-            return rowHTML;
-        }
+            {% endfor %}
+        </div>
+    </main>
 
-        // Main function to populate the page
-        function populatePage() {
-            const movieRowsContainer = document.getElementById('movieRows');
-            
-            const newOnStremio = JSON.parse(document.getElementById('new_on_stremio').textContent);
-            const recommendedNew = JSON.parse(document.getElementById('recommended_new').textContent);
-            const weekendBoxOffice = JSON.parse(document.getElementById('weekend_box_office').textContent);
-
-            movieRowsContainer.innerHTML += createMovieRow("New on Stremio", newOnStremio);
-            movieRowsContainer.innerHTML += createMovieRow("Recommended New", recommendedNew);
-            movieRowsContainer.innerHTML += createMovieRow("Weekend Box Office", weekendBoxOffice);
-        }
-
+    <script>
         // Function to slide the movie row
         function slide(button, direction) {
             const slider = button.parentElement.querySelector('.movie-slider');
@@ -332,9 +406,6 @@
             const scrollAmount = sliderWidth * 0.8 * direction;
             slider.scrollBy({ left: scrollAmount, behavior: 'smooth' });
         }
-
-        // Call the main function when the page loads
-        window.addEventListener('load', populatePage);
 
         // Dynamic navbar
         window.addEventListener('scroll', () => {
@@ -344,6 +415,109 @@
             } else {
                 navbar.classList.remove('scrolled');
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('search-input');
+            const searchButton = document.getElementById('search-button');
+            const searchResults = document.getElementById('search-results');
+            let searchTimeout;
+
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(performSearch, 300);
+            });
+
+            searchInput.addEventListener('focus', function() {
+                searchResults.classList.add('active');
+            });
+
+            searchButton.addEventListener('click', function() {
+                performSearch();
+            });
+
+            document.addEventListener('click', function(event) {
+                if (!searchInput.contains(event.target) && !searchResults.contains(event.target)) {
+                    searchResults.classList.remove('active');
+                }
+            });
+
+            function performSearch() {
+                const query = searchInput.value.trim();
+                if (query.length > 2) {
+                    fetch(`/search/?q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            displaySearchResults(data);
+                        })
+                        .catch(error => console.error('Error:', error));
+                } else {
+                    searchResults.innerHTML = '';
+                    searchResults.classList.remove('active');
+                }
+            }
+
+            function displaySearchResults(results) {
+                searchResults.innerHTML = '';
+                
+                if (results.length === 0) {
+                    searchResults.innerHTML = '<p style="padding: 15px; text-align: center;">No results found</p>';
+                } else {
+                    const ul = document.createElement('ul');
+                    results.forEach(movie => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <img src="https://image.tmdb.org/t/p/w92${movie.poster_path}" alt="${movie.title} poster">
+                            <div>
+                                <h3>${movie.title} (${movie.release_year})</h3>
+                                <p>Rating: ${movie.vote_average}</p>
+                            </div>
+                        `;
+                        li.addEventListener('click', () => {
+                            window.location.href = `/${movie.id}`;
+                        });
+                        ul.appendChild(li);
+                    });
+                    searchResults.appendChild(ul);
+                }
+                
+                searchResults.classList.add('active');
+            }
+
+            // Keyboard navigation for search results
+            searchInput.addEventListener('keydown', function(event) {
+                const items = searchResults.querySelectorAll('li');
+                let currentIndex = -1;
+
+                items.forEach((item, index) => {
+                    if (item === document.activeElement) {
+                        currentIndex = index;
+                    }
+                });
+
+                switch (event.key) {
+                    case 'ArrowDown':
+                        event.preventDefault();
+                        if (currentIndex < items.length - 1) {
+                            items[currentIndex + 1].focus();
+                        } else {
+                            items[0].focus();
+                        }
+                        break;
+                    case 'ArrowUp':
+                        event.preventDefault();
+                        if (currentIndex > 0) {
+                            items[currentIndex - 1].focus();
+                        } else {
+                            items[items.length - 1].focus();
+                        }
+                        break;
+                    case 'Escape':
+                        searchResults.classList.remove('active');
+                        searchInput.blur();
+                        break;
+                }
+            });
         });
     </script>
 </body>

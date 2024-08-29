@@ -111,29 +111,39 @@
             box-shadow: 0 10px 30px rgba(100, 255, 218, 0.2);
         }
 
-        .video-container {
-            position: relative;
+        .iframe-container {
             width: 100%;
-            padding-top: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            position: relative;
         }
-
-        .video-js {
+        
+        .iframe-container iframe {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100% !important;
-            height: 100% !important;
+            width: 100%;
+            height: 100%;
         }
 
-        .vjs-tech {
-            object-fit: contain;
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
         }
 
-        /* Center the play button */
-        .vjs-big-play-button {
-            top: 50% !important;
-            left: 50% !important;
-            transform: translate(-50%, -50%) !important;
+        .rd-button {
+            background-color: #64ffda;
+            color: #0a192f;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .rd-button:hover {
+            background-color: #4cccb0;
         }
 
         .movie-info {
@@ -185,37 +195,37 @@
         <div class="nav-links">
             <a href="{% url 'homepage' %}" class="nav-link">Home</a>
             <a href="{% url 'trending' %}" class="nav-link">Trending</a>
-            <a href="#" class="nav-link">New</a>
-            <a href="#" class="nav-link">My List</a>
+            
         </div>
         <div class="user-profile">
-            <img src="https://via.placeholder.com/40" alt="User Profile">
-            <span>Hi, Dave</span>
+            {% if user.is_authenticated %}
+                <span>Hi, {{ user.username }}</span>
+            {% else %}
+                <a href="{% url 'login' %}" class="nav-link">Login</a>
+                <a href="{% url 'signup' %}" class="nav-link">Sign Up</a>
+            {% endif %}
         </div>
     </nav>
 
     <main>
         <div class="video-wrapper">
-            <div class="video-container">
-                <video
-                    id="my-video"
-                    class="video-js"
-                    controls
-                    preload="auto"
-                    poster="https://image.tmdb.org/t/p/w1280{{ movie.backdrop_path }}"
-                    data-setup="{}"
-                >
-                    <source src="{{ stream_url }}" type="video/mp4" />
-                    {% for subtitle in subtitles %}
-                        <track kind="captions" src="{{ subtitle.url }}" srclang="{{ subtitle.lang }}" label="{{ subtitle.lang }}" />
-                    {% endfor %}
-                    <p class="vjs-no-js">
-                        To view this video please enable JavaScript, and consider upgrading to a
-                        web browser that
-                        <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
-                    </p>
-                </video>
+            <div class="iframe-container" id="iframe-container">
+                <iframe 
+                    id="video-player"
+                    title="player" 
+                    scrolling="no" 
+                    frameborder="0" 
+                    marginwidth="0" 
+                    allowfullscreen="yes" 
+                    src="{{ vidsrc_url }}"
+                    allow="autoplay; fullscreen" 
+                    style="width: 100%; height: 100%; overflow: hidden;" 
+                    referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
             </div>
+        </div>
+        <div class="button-container">
+            <button id="switch-source" class="rd-button">Switch Source</button>
         </div>
         <div class="movie-info">
             <h1 class="movie-title">{{ movie.title }}</h1>
@@ -234,35 +244,33 @@
             </p>
         </div>
     </main>
-
-    <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const navbar = document.querySelector('.navbar');
-            
-            // Navbar scroll effect
-            window.addEventListener('scroll', function() {
-                if (window.scrollY > 50) {
-                    navbar.classList.add('scrolled');
-                } else {
-                    navbar.classList.remove('scrolled');
-                }
-            });
-
-            // Initialize Video.js player
-            var player = videojs('my-video', {
-                responsive: true,
-                fluid: false,
-                aspectRatio: '16:9',
-                playbackRates: [0.5, 1, 1.5, 2]
-            });
-
-            // Ensure the player size doesn't change on load
-            player.on('loadedmetadata', function() {
-                this.width(this.currentWidth());
-                this.height(this.currentHeight());
-            });
+    document.addEventListener('DOMContentLoaded', function() {
+        const navbar = document.querySelector('.navbar');
+        const switchSourceButton = document.getElementById('switch-source');
+        const videoPlayer = document.getElementById('video-player');
+        
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
         });
+
+        // Switch source button click event
+        let currentSource = 'movieapi';
+        switchSourceButton.addEventListener('click', function() {
+            if (currentSource === 'movieapi') {
+                videoPlayer.src = "{{ vidsrc_url }}";
+                currentSource = 'vidsrc';
+            } else {
+                videoPlayer.src = "{{ movieapi_url }}";
+                currentSource = 'movieapi';
+            }
+        });
+    });
     </script>
 </body>
 </html>

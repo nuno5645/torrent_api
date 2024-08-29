@@ -359,19 +359,24 @@
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo">Flix 🏴‍☠️</div>
-        <div class="nav-links">
-            <a href="{% url 'homepage' %}" class="nav-link">Home</a>
-            <a href="{% url 'trending' %}" class="nav-link">Trending</a>
-            <a href="#" class="nav-link">New</a>
-            <a href="#" class="nav-link">My List</a>
-        </div>
-        <div class="user-profile">
-            <img src="https://via.placeholder.com/40" alt="User Profile">
-            <span>Hi, Dave</span>
-        </div>
-    </nav>
+<nav class="navbar">
+    <div class="logo">Flix 🏴‍☠️</div>
+    <div class="nav-links">
+        <a href="{% url 'homepage' %}" class="nav-link">Home</a>
+        <a href="{% url 'trending' %}" class="nav-link">Trending</a>
+        {% comment %} {% if user.is_authenticated %}
+            <a href="{% url 'watchlist' %}" class="nav-link">My List</a>
+        {% endif %} {% endcomment %}
+    </div>
+    <div class="user-profile">
+        {% if user.is_authenticated %}
+            <span>Hi, {{ user.username }}</span>
+        {% else %}
+            <a href="{% url 'login' %}" class="nav-link">Login</a>
+            <a href="{% url 'signup' %}" class="nav-link">Sign Up</a>
+        {% endif %}
+    </div>
+</nav>
 
     <main>
         <div class="movie-detail">
@@ -438,7 +443,7 @@
             const navbar = document.querySelector('.navbar');
             
             watchButton.addEventListener('click', function() {
-                const movieTitle = "{{ movie.title }}";
+                const movieTitle = "{{ movie.title }} ({{ movie.release_date|slice:':4' }})";
                 const csrfToken = this.getAttribute('data-csrf-token');
                 
                 // Start button animation
@@ -457,9 +462,6 @@
                     body: `movie_title=${encodeURIComponent(movieTitle)}`
                 })
                 .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
                     return response.json();
                 })
                 .then(data => {
@@ -468,10 +470,6 @@
                     } else if (data.error) {
                         alert(data.error);
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while trying to fetch the streaming link.');
                 })
                 .finally(() => {
                     // Reset button and hide loading overlay
