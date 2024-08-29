@@ -190,9 +190,6 @@
         <div class="nav-links">
             <a href="{% url 'homepage' %}" class="nav-link">Home</a>
             <a href="{% url 'trending' %}" class="nav-link">Trending</a>
-            {% comment %} {% comment %} {% if user.is_authenticated %}
-                <a href="{% url 'watchlist' %}" class="nav-link">My List</a>
-            {% endif %} {% endcomment %} {% endcomment %}
         </div>
         <div class="user-profile">
             {% if user.is_authenticated %}

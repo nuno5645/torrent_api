@@ -94,7 +94,7 @@ class HomePageView(LoginRequiredMixin, View):
     def get(self, request):
         log("HomePageView: GET request received", GREEN)
         
-        new_on_stremio = self.get_or_create_list("New on Stremio", "https://mdblist.com/lists/linaspurinis/top-watched-movies-of-the-week/json")
+        new_on_stremio = self.get_or_create_list("Top Watched Movies of the Week", "https://mdblist.com/lists/linaspurinis/top-watched-movies-of-the-week/json")
         recommended_new = self.get_or_create_list("Recommended New", "https://mdblist.com/lists/zeroq/recommended-new-on-stremio/json")
         weekend_box_office = self.get_or_create_list("Weekend Box Office", "https://mdblist.com/lists/zeroq/weekend-box-office/json")
 
@@ -111,21 +111,24 @@ class HomePageView(LoginRequiredMixin, View):
 
     def get_or_create_list(self, list_name, url):
         log(f"get_or_create_list: Processing {list_name}", BLUE)
-        streaming_list = StreamingList.objects.get(
+        streaming_list, created = StreamingList.objects.get_or_create(
             name=list_name,
+            url=url
         )
         
-        print(streaming_list)
-            
+        if created:
+            log(f"get_or_create_list: Created new StreamingList '{list_name}'", GREEN)
+        else:
+            log(f"get_or_create_list: Retrieved existing StreamingList '{list_name}'", BLUE)
 
-        
-        # log(f"get_or_create_list: Fetching fresh data for '{list_name}'", YELLOW)
-        # self.fetch_and_process_data(streaming_list)
-        # streaming_list.last_updated = timezone.now()
-        # streaming_list.save()
-        # log(f"get_or_create_list: Updated '{list_name}' with fresh data", GREEN)
-        # else:
-        #     log(f"get_or_create_list: Using existing data for '{list_name}'", BLUE)
+        if created or streaming_list.last_updated is None or self.should_update(streaming_list):
+            log(f"get_or_create_list: Fetching fresh data for '{list_name}'", YELLOW)
+            self.fetch_and_process_data(streaming_list)
+            streaming_list.last_updated = timezone.now()
+            streaming_list.save()
+            log(f"get_or_create_list: Updated '{list_name}' with fresh data", GREEN)
+        else:
+            log(f"get_or_create_list: Using existing data for '{list_name}'", BLUE)
 
         return streaming_list.movies.all().order_by('streaminglistmovie__position')
 
@@ -189,7 +192,7 @@ class HomePageView(LoginRequiredMixin, View):
         removed_count = StreamingListMovie.objects.filter(
             streaming_list=streaming_list, 
             movie__imdb_id__in=movies_to_remove
-        ).delete()[0]
+            ).delete()[0]
         log(f"fetch_and_process_data: Removed {removed_count} movies from '{streaming_list.name}'", YELLOW)
 
     def fetch_tmdb_info(self, imdb_id):
@@ -479,14 +482,21 @@ class VideoStreamView(LoginRequiredMixin, View):
 
         # Create the MovieAPI URL
         movieapi_url = f"https://moviesapi.club/movie/{movie_id}" if movie_id else ''
+        
+        
+        api_key = "2480c2206d4661b89bf222cbc9c7f5ea"
+        movie_url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}&language=en-US"
+        movie_response = requests.get(movie_url)
+        movie_data = movie_response.json()
 
-        # Pass the video URL, streaming URL, MovieAPI URL, vidsrc URL, and subtitles to the template
+        # Add movie data to the context
         context = {
             'stream_url': video_url,
             'streaming_url': streaming_url,
             'movieapi_url': movieapi_url,
             'vidsrc_url': vidsrc_url,
-            'subtitles': subtitles
+            'subtitles': subtitles,
+            'movie': movie_data
         }
         log("VideoStreamView: Rendering stream template", GREEN)
         return render(request, 'stream.html', context)

@@ -4,8 +4,8 @@ from django.db import models
 from django.utils import timezone
 
 class Movie(models.Model):
-    mdblist_id = models.IntegerField(unique=True)
-    tmdb_id = models.IntegerField(unique=True, null=True, blank=True)
+    mdblist_id = models.IntegerField(blank=True)
+    tmdb_id = models.IntegerField(null=True, blank=True)
     imdb_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
     tvdbid = models.IntegerField(null=True, blank=True)
     title = models.CharField(max_length=255)

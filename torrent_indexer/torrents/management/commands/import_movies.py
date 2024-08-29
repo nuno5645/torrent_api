@@ -2,11 +2,15 @@ import pandas as pd
 from django.core.management.base import BaseCommand
 from torrents.models import Movie
 from tqdm import tqdm
+import os
 
 class Command(BaseCommand):
     help = 'Import movies from a CSV file into the database'
 
     def handle(self, *args, **options):
+        
+        #print current directory
+        self.stdout.write(os.getcwd())
         # Read the CSV file
         df = pd.read_csv('TMDB_movie_dataset_v11.csv')
         
