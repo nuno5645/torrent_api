@@ -4,15 +4,14 @@ from django.db import models
 from django.utils import timezone
 
 class Movie(models.Model):
-    mdblist_id = models.IntegerField(blank=True)
     tmdb_id = models.IntegerField(null=True, blank=True)
     imdb_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
     tvdbid = models.IntegerField(null=True, blank=True)
     title = models.CharField(max_length=255)
     rank = models.IntegerField(null=True, blank=True)
     adult = models.BooleanField(default=False)
-    mediatype = models.CharField(max_length=10)
-    release_year = models.IntegerField()
+    mediatype = models.CharField(max_length=10, default="movie")
+    release_year = models.IntegerField(default=0)
     overview = models.TextField(null=True, blank=True)
     poster_path = models.CharField(max_length=255, null=True, blank=True)
     backdrop_path = models.CharField(max_length=255, null=True, blank=True)
@@ -76,3 +75,4 @@ class RealDebrid(models.Model):
 
     def __str__(self):
         return f"RD: {self.torrent.name}"
+    

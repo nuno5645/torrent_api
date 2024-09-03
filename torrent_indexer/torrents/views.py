@@ -98,6 +98,9 @@ class HomePageView(LoginRequiredMixin, View):
         recommended_new = self.get_or_create_list("Recommended New", "https://mdblist.com/lists/zeroq/recommended-new-on-stremio/json")
         weekend_box_office = self.get_or_create_list("Weekend Box Office", "https://mdblist.com/lists/zeroq/weekend-box-office/json")
 
+
+
+        print(new_on_stremio)
         context = {
             'movie_lists': [
                 {"title": "Top Watched Movies of the Week", "movies": new_on_stremio},
@@ -154,7 +157,6 @@ class HomePageView(LoginRequiredMixin, View):
                     log(f"fetch_and_process_data: Processing movie {imdb_id}", CYAN)
                     tmdb_info = self.fetch_tmdb_info(imdb_id)
                     movie_data = {
-                        'mdblist_id': item['id'],
                         'imdb_id': imdb_id,
                         'tvdbid': item.get('tvdbid'),
                         'title': item['title'],
@@ -234,6 +236,13 @@ class MovieDetailView(LoginRequiredMixin, View):
         log(f"MovieDetailView: GET request received for movie ID: {movie_id}", GREEN)
         api_key = "2480c2206d4661b89bf222cbc9c7f5ea"
         url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}&language=en-US&append_to_response=credits"
+        
+        # Fetch movie recommendations
+        recommendations_url = f"https://api.themoviedb.org/3/movie/{movie_id}/recommendations?api_key={api_key}&language=en-US&page=1"
+        log(f"MovieDetailView: Fetching movie recommendations for ID: {movie_id}", BLUE)
+        recommendations_response = requests.get(recommendations_url)
+        recommendations_data = recommendations_response.json()
+
 
         log(f"MovieDetailView: Fetching movie details from TMDB for ID: {movie_id}", BLUE)
         response = requests.get(url)
@@ -241,7 +250,8 @@ class MovieDetailView(LoginRequiredMixin, View):
 
         context = {
             'movie': movie_data,
-            'cast': movie_data.get('credits', {}).get('cast', [])[:5]  # Get first 5 cast members
+            'cast': movie_data.get('credits', {}).get('cast', [])[:5],  # Get first 5 cast members
+            'recommended_movies': recommendations_data.get('results', [])[:5]  # Get first 5 recommended movies
         }
 
         log("MovieDetailView: Rendering movie detail page", GREEN)
@@ -255,9 +265,10 @@ class MovieDetailView(LoginRequiredMixin, View):
             log("MovieDetailView: Real-Debrid, torrent, and subtitles functionality disabled", YELLOW)
             moviesapi_url = f"https://moviesapi.club/movie/{movie_id}"
             vidsrc_url = f"https://vidsrc.cc/v2/embed/movie/{movie_id}"
+            vidsrc_url_2 = f"https://vidsrc.xyz/embed/movie/{movie_id}"
             return JsonResponse({
                 'redirect': reverse('video_stream', kwargs={'video_url': moviesapi_url}) + 
-                    f'?title={movie_title}&movie_id={movie_id}&vidsrc_url={vidsrc_url}'
+                    f'?title={movie_title}&movie_id={movie_id}&vidsrc_url={vidsrc_url}&vidsrc_url_2={vidsrc_url_2}'
             })
         else:
 
@@ -479,10 +490,12 @@ class VideoStreamView(LoginRequiredMixin, View):
         movie_id = request.GET.get('movie_id', '')
 
         vidsrc_url = request.GET.get('vidsrc_url', '')
-
+        vidsrc_url_2 = request.GET.get('vidsrc_url_2', '')
         # Create the MovieAPI URL
         movieapi_url = f"https://moviesapi.club/movie/{movie_id}" if movie_id else ''
         
+        # Add the new multiembed source
+        multiembed_url = f"https://multiembed.mov/?video_id={movie_id}&tmdb=1"
         
         api_key = "2480c2206d4661b89bf222cbc9c7f5ea"
         movie_url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}&language=en-US"
@@ -495,13 +508,13 @@ class VideoStreamView(LoginRequiredMixin, View):
             'streaming_url': streaming_url,
             'movieapi_url': movieapi_url,
             'vidsrc_url': vidsrc_url,
+            'vidsrc_url_2': vidsrc_url_2,
+            'multiembed_url': multiembed_url,  # Add the new source to the context
             'subtitles': subtitles,
             'movie': movie_data
         }
         log("VideoStreamView: Rendering stream template", GREEN)
         return render(request, 'stream.html', context)
-
-
 
     def stream_video(self, response):
         log("stream_video: Streaming video content", BLUE)

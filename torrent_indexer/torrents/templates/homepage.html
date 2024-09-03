@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flix 🏴‍☠️ - Modern Streaming Platform</title>
     <style>
+        :root {
+            --primary-bg: #0a192f;
+            --secondary-bg: #1A202C;
+            --primary-text: #fff;
+            --secondary-text: #8892b0;
+            --accent-color: #64ffda;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,8 +21,9 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0a192f;
-            color: #fff;
+            background-color: var(--primary-bg);
+            color: var(--primary-text);
+            line-height: 1.6;
         }
 
         .navbar {
@@ -43,35 +52,14 @@
         }
     
         .nav-link {
-            color: #8892b0;
+            color: var(--secondary-text);
             text-decoration: none;
             transition: color 0.3s ease;
-            position: relative;
-            padding: 5px 0;
-        }
-    
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background-color: #64ffda;
-            transform: scaleX(0);
-            transform-origin: right;
-            transition: transform 0.3s ease;
-        }
-    
-        .nav-link:hover::after,
-        .nav-link.active::after {
-            transform: scaleX(1);
-            transform-origin: left;
         }
     
         .nav-link:hover,
         .nav-link.active {
-            color: #64ffda;
+            color: var(--accent-color);
         }
 
         .user-profile {
@@ -80,50 +68,42 @@
             gap: 10px;
         }
 
-        .user-profile img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-        }
-
         main {
             padding: 100px 50px 50px;
         }
 
         .header {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end;
             align-items: center;
             margin-bottom: 30px;
         }
 
         .search-container {
             position: relative;
-            display: flex;
-            align-items: center;
+            width: 300px;
         }
 
         .search-input {
             background-color: rgba(100, 255, 218, 0.1);
-            border: 2px solid #64ffda;
+            border: 2px solid var(--accent-color);
             border-radius: 25px;
-            padding: 10px 20px;
+            padding: 10px 40px 10px 20px;
             font-size: 16px;
-            color: #fff;
-            width: 250px;
+            color: var(--primary-text);
+            width: 100%;
             transition: all 0.3s ease;
         }
 
         .search-input:focus {
             outline: none;
             box-shadow: 0 0 10px rgba(100, 255, 218, 0.5);
-            width: 300px;
         }
 
         .search-button {
             background: none;
             border: none;
-            color: #64ffda;
+            color: var(--accent-color);
             font-size: 20px;
             cursor: pointer;
             position: absolute;
@@ -137,7 +117,7 @@
             top: 100%;
             left: 0;
             right: 0;
-            background-color: #1A202C;
+            background-color: var(--secondary-bg);
             border-radius: 10px;
             box-shadow: 0 10px 20px rgba(0,0,0,0.2);
             max-height: 400px;
@@ -191,13 +171,13 @@
         .search-results h3 {
             margin: 0;
             font-size: 18px;
-            color: #64ffda;
+            color: var(--accent-color);
         }
 
         .search-results p {
             margin: 5px 0 0;
             font-size: 14px;
-            color: #8892b0;
+            color: var(--secondary-text);
         }
 
         .movie-row {
@@ -215,17 +195,17 @@
 
         .row-title {
             font-size: 24px;
-            color: #64ffda;
+            color: var(--accent-color);
         }
 
         .see-all {
-            color: #8892b0;
+            color: var(--secondary-text);
             text-decoration: none;
             transition: color 0.3s ease;
         }
 
         .see-all:hover {
-            color: #64ffda;
+            color: var(--accent-color);
         }
 
         .movie-slider {
@@ -252,12 +232,6 @@
         .movie-card:hover {
             transform: translateY(-10px);
             box-shadow: 0 10px 30px rgba(100, 255, 218, 0.2);
-        }
-
-        .movie-card-inner {
-            position: relative;
-            width: 100%;
-            height: 100%;
         }
 
         .movie-poster {
@@ -290,20 +264,20 @@
             font-size: 16px;
             font-weight: bold;
             margin-bottom: 5px;
-            color: #64ffda;
+            color: var(--accent-color);
         }
 
         .movie-genre {
             font-size: 14px;
-            color: #8892b0;
+            color: var(--secondary-text);
         }
 
         .rating {
             position: absolute;
             top: 10px;
             right: 10px;
-            background-color: #64ffda;
-            color: #0a192f;
+            background-color: var(--accent-color);
+            color: var(--primary-bg);
             padding: 5px 10px;
             border-radius: 15px;
             font-size: 14px;
@@ -315,7 +289,7 @@
             top: 50%;
             transform: translateY(-50%);
             background-color: rgba(100, 255, 218, 0.5);
-            color: #0a192f;
+            color: var(--primary-bg);
             border: none;
             border-radius: 50%;
             width: 40px;
@@ -341,28 +315,61 @@
             right: -20px;
         }
 
-        /* New styles for mobile responsiveness */
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #64ffda;
+        }
+
         @media (max-width: 768px) {
-            .header {
+            .navbar {
                 flex-direction: column;
-                align-items: flex-start;
+                padding: 10px;
             }
 
-            .header h1 {
-                display: none;
+            .nav-links {
+                margin-top: 10px;
+            }
+
+            .user-profile {
+                margin-top: 10px;
+            }
+
+            main {
+                padding: 80px 20px 20px;
+            }
+
+            .header {
+                flex-direction: row;
+                justify-content: flex-end;
             }
 
             .search-container {
                 width: 100%;
-                margin-top: 20px;
+                max-width: 300px;
             }
 
             .search-input {
                 width: 100%;
             }
 
-            .search-input:focus {
-                width: 100%;
+            .movie-card {
+                width: 150px;
+                height: 225px;
+            }
+
+            .slider-control {
+                width: 30px;
+                height: 30px;
+                font-size: 16px;
+            }
+
+            .slider-control.left {
+                left: -15px;
+            }
+
+            .slider-control.right {
+                right: -15px;
             }
         }
     </style>
@@ -385,7 +392,6 @@
     </nav>
     <main>
         <div class="header">
-            <h1>Welcome to Flix 🏴‍☠️</h1>
             <div class="search-container">
                 <input type="text" id="search-input" class="search-input" placeholder="Search movies..." aria-label="Search movies">
                 <button id="search-button" class="search-button" aria-label="Search">🔍</button>
@@ -402,14 +408,12 @@
                     <div class="movie-slider">
                         {% for movie in movie_list.movies %}
                             <div class="movie-card" onclick="window.location.href='/{{ movie.tmdb_id }}'">
-                                <div class="movie-card-inner">
-                                    <img class="movie-poster" src="https://image.tmdb.org/t/p/w200{{ movie.poster_path|default:'' }}" alt="{{ movie.title }}">
-                                    <div class="movie-info">
-                                        <div class="movie-title">{{ movie.title }}</div>
-                                        <div class="movie-genre">{{ movie.mediatype }}</div>
-                                    </div>
-                                    <div class="rating">{{ movie.vote_average|floatformat:1 }}</div>
+                                <img class="movie-poster" src="https://image.tmdb.org/t/p/w200{{ movie.poster_path|default:'' }}" alt="{{ movie.title }}">
+                                <div class="movie-info">
+                                    <div class="movie-title">{{ movie.title }}</div>
+                                    <div class="movie-genre">{{ movie.mediatype }}</div>
                                 </div>
+                                <div class="rating">{{ movie.vote_average|floatformat:1 }}</div>
                             </div>
                         {% endfor %}
                     </div>
@@ -421,7 +425,6 @@
     </main>
 
     <script>
-        // Function to slide the movie row
         function slide(button, direction) {
             const slider = button.parentElement.querySelector('.movie-slider');
             const sliderWidth = slider.clientWidth;
@@ -429,7 +432,6 @@
             slider.scrollBy({ left: scrollAmount, behavior: 'smooth' });
         }
 
-        // Dynamic navbar
         window.addEventListener('scroll', () => {
             const navbar = document.querySelector('.navbar');
             if (window.scrollY > 50) {
@@ -454,9 +456,7 @@
                 searchResults.classList.add('active');
             });
 
-            searchButton.addEventListener('click', function() {
-                performSearch();
-            });
+            searchButton.addEventListener('click', performSearch);
 
             document.addEventListener('click', function(event) {
                 if (!searchInput.contains(event.target) && !searchResults.contains(event.target)) {
@@ -505,41 +505,6 @@
                 
                 searchResults.classList.add('active');
             }
-
-            // Keyboard navigation for search results
-            searchInput.addEventListener('keydown', function(event) {
-                const items = searchResults.querySelectorAll('li');
-                let currentIndex = -1;
-
-                items.forEach((item, index) => {
-                    if (item === document.activeElement) {
-                        currentIndex = index;
-                    }
-                });
-
-                switch (event.key) {
-                    case 'ArrowDown':
-                        event.preventDefault();
-                        if (currentIndex < items.length - 1) {
-                            items[currentIndex + 1].focus();
-                        } else {
-                            items[0].focus();
-                        }
-                        break;
-                    case 'ArrowUp':
-                        event.preventDefault();
-                        if (currentIndex > 0) {
-                            items[currentIndex - 1].focus();
-                        } else {
-                            items[items.length - 1].focus();
-                        }
-                        break;
-                    case 'Escape':
-                        searchResults.classList.remove('active');
-                        searchInput.blur();
-                        break;
-                }
-            });
         });
     </script>
 </body>

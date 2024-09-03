@@ -15,7 +15,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #0a192f;
             color: #fff;
-            overflow-x: hidden;
+            overflow: hidden;
         }
 
         .navbar {
@@ -415,13 +415,13 @@
         <div class="related-movies">
             <h2 class="section-title">Related Movies</h2>
             <div class="movie-grid">
-                {% for related_movie in related_movies %}
-                    <div class="movie-card" style="--delay: {{ forloop.counter }}">
-                        <img src="https://image.tmdb.org/t/p/w300{{ related_movie.poster_path }}" alt="{{ related_movie.title }}">
+                {% for recommended_movie in recommended_movies %}
+                    <a href="{% url 'movie_detail' recommended_movie.id %}" class="movie-card" style="--delay: {{ forloop.counter }}">
+                        <img src="https://image.tmdb.org/t/p/w300{{ recommended_movie.poster_path }}" alt="{{ recommended_movie.title }}">
                         <div class="movie-card-info">
-                            <div class="movie-card-title">{{ related_movie.title }}</div>
+                            <div class="movie-card-title">{{ recommended_movie.title }}</div>
                         </div>
-                    </div>
+                    </a>
                 {% endfor %}
             </div>
         </div>
