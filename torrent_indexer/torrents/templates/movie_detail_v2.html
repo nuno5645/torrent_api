@@ -15,7 +15,8 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #0a192f;
             color: #fff;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
         .navbar {
@@ -214,6 +215,7 @@
             overflow-x: auto;
             padding-bottom: 10px;
             scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
         }
 
         .cast-member {
@@ -328,6 +330,10 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                overflow-y: auto;
+            }
+
             .movie-detail {
                 flex-direction: column;
                 padding: 30px;

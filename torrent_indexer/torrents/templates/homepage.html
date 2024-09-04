@@ -329,48 +329,208 @@
 
             .nav-links {
                 margin-top: 10px;
+                width: 100%;
+                justify-content: space-around;
             }
 
             .user-profile {
                 margin-top: 10px;
+                width: 100%;
+                justify-content: center;
             }
 
             main {
-                padding: 80px 20px 20px;
+                padding: 120px 10px 20px;
             }
 
             .header {
-                flex-direction: row;
-                justify-content: flex-end;
+                justify-content: center;
+                margin-bottom: 20px;
             }
 
             .search-container {
                 width: 100%;
-                max-width: 300px;
             }
 
-            .search-input {
-                width: 100%;
+            .movie-row {
+                margin-bottom: 30px;
+            }
+
+            .row-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .see-all {
+                margin-top: 5px;
+            }
+
+            .movie-slider {
+                padding: 10px 0;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scroll-snap-type: x mandatory;
             }
 
             .movie-card {
-                width: 150px;
-                height: 225px;
+                width: 160px;
+                height: 240px;
+                margin-right: 15px;
+                scroll-snap-align: start;
             }
 
-            .slider-control {
-                width: 30px;
-                height: 30px;
+            .movie-title {
                 font-size: 16px;
             }
 
-            .slider-control.left {
-                left: -15px;
+            .movie-genre {
+                font-size: 14px;
             }
 
-            .slider-control.right {
-                right: -15px;
+            .rating {
+                font-size: 14px;
+                padding: 4px 8px;
             }
+
+            .slider-control {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 5px;
+            }
+
+            .logo {
+                font-size: 20px;
+            }
+
+            .nav-links {
+                font-size: 14px;
+            }
+
+            .user-profile {
+                font-size: 14px;
+            }
+
+            .search-input {
+                font-size: 14px;
+                padding: 8px 30px 8px 15px;
+            }
+
+            .search-button {
+                font-size: 16px;
+                right: 10px;
+            }
+
+            .row-title {
+                font-size: 20px;
+            }
+
+            .movie-card {
+                width: 140px;
+                height: 210px;
+            }
+
+            .movie-title {
+                font-size: 15px;
+            }
+
+            .movie-genre {
+                font-size: 13px;
+            }
+        }
+
+        /* New styles for animations and interactivity */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        main {
+            animation: fadeIn 1s ease-out;
+        }
+
+        .scroll-to-top {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--accent-color);
+            color: var(--primary-bg);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            transform: translateY(100px);
+        }
+
+        .scroll-to-top.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .movie-card {
+            transition: all 0.3s ease, transform 0.2s ease;
+        }
+
+        .movie-card:hover {
+            transform: scale(1.05) translateY(-10px);
+        }
+
+        .loading-animation {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            height: 50px;
+        }
+
+        .loading-animation div {
+            width: 10px;
+            height: 10px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            margin: 0 5px;
+            animation: bounce 0.5s ease-in-out infinite;
+        }
+
+        .loading-animation div:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .loading-animation div:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .logo {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: 0.5s;
+        }
+
+        .logo:hover::after {
+            left: 100%;
         }
     </style>
 </head>
@@ -424,6 +584,8 @@
         </div>
     </main>
 
+    <div class="scroll-to-top">↑</div>
+
     <script>
         function slide(button, direction) {
             const slider = button.parentElement.querySelector('.movie-slider');
@@ -467,16 +629,31 @@
             function performSearch() {
                 const query = searchInput.value.trim();
                 if (query.length > 2) {
+                    showLoadingAnimation();
                     fetch(`/search/?q=${encodeURIComponent(query)}`)
                         .then(response => response.json())
                         .then(data => {
+                            hideLoadingAnimation();
                             displaySearchResults(data);
                         })
-                        .catch(error => console.error('Error:', error));
+                        .catch(error => {
+                            console.error('Error:', error);
+                            hideLoadingAnimation();
+                        });
                 } else {
                     searchResults.innerHTML = '';
                     searchResults.classList.remove('active');
                 }
+            }
+
+            function showLoadingAnimation() {
+                searchResults.innerHTML = '<div class="loading-animation"><div></div><div></div><div></div></div>';
+                searchResults.classList.add('active');
+                document.querySelector('.loading-animation').style.display = 'flex';
+            }
+
+            function hideLoadingAnimation() {
+                document.querySelector('.loading-animation').style.display = 'none';
             }
 
             function displaySearchResults(results) {
@@ -505,6 +682,25 @@
                 
                 searchResults.classList.add('active');
             }
+
+            // New JavaScript for animations and interactivity
+            const scrollToTopButton = document.querySelector('.scroll-to-top');
+
+            // Scroll to top functionality
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 300) {
+                    scrollToTopButton.classList.add('visible');
+                } else {
+                    scrollToTopButton.classList.remove('visible');
+                }
+            });
+
+            scrollToTopButton.addEventListener('click', () => {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
         });
     </script>
 </body>
