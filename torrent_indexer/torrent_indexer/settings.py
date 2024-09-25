@@ -99,16 +99,10 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        'OPTIONS': {
+            'min_length': 6,  # Change this to your desired minimum length
+        }
     },
 ]
 
@@ -142,12 +136,16 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
-ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_EMAIL_REQUIRED = False
-ACCOUNT_AUTHENTICATION_METHOD = 'username'
+ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_USERNAME_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = 'username'
+
 
 SITE_ID = 1
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 ACCOUNT_LOGOUT_REDIRECT_URL = "homepage"
+
+
+AUTH_PASSWORD_VALIDATORS = []

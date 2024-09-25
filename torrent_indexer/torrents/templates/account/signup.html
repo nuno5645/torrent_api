@@ -233,28 +233,28 @@
         <form method="post" id="signupForm">
             {% csrf_token %}
             {% for field in form %}
-                {% if field.name == 'password1' %}
-                    <div class="form-group">
-                        <input type="password" id="{{ field.id_for_label }}" name="{{ field.html_name }}" placeholder=" ">
-                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                        <div class="error-message" id="{{ field.id_for_label }}Error"></div>
-                        <div class="password-requirements">
-                            <ul>
-                                <li>Your password can't be too similar to your other personal information.</li>
-                                <li>Your password must contain at least 8 characters.</li>
-                                <li>Your password can't be a commonly used password.</li>
-                                <li>Your password can't be entirely numeric.</li>
-                            </ul>
+                {% if field.name != 'email' %}
+                    {% if field.name == 'password1' %}
+                        <div class="form-group">
+                            <input type="password" id="{{ field.id_for_label }}" name="{{ field.html_name }}" placeholder=" ">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            <div class="error-message" id="{{ field.id_for_label }}Error"></div>
+                            <div class="password-requirements">
+                                <ul>
+                                    <li>Your password must contain at least 6 characters.</li>
+                                </ul>
+                            </div>
                         </div>
-                    </div>
-                {% else %}
-                    <div class="form-group">
-                        <input type="{{ field.field.widget.input_type }}" id="{{ field.id_for_label }}" name="{{ field.html_name }}" placeholder=" ">
-                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                        <div class="error-message" id="{{ field.id_for_label }}Error"></div>
-                    </div>
+                    {% else %}
+                        <div class="form-group">
+                            <input type="{{ field.field.widget.input_type }}" id="{{ field.id_for_label }}" name="{{ field.html_name }}" placeholder=" ">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            <div class="error-message" id="{{ field.id_for_label }}Error"></div>
+                        </div>
+                    {% endif %}
                 {% endif %}
             {% endfor %}
+            <input type="hidden" id="id_email" name="email">
             <button class="submit-btn" type="submit">Sign Up</button>
         </form>
         <div class="additional-links">
@@ -287,17 +287,22 @@
             let isValid = true;
 
             {% for field in form %}
-                const {{ field.html_name }} = document.getElementById('{{ field.id_for_label }}').value;
-                if (!{{ field.html_name }}) {
-                    document.getElementById('{{ field.id_for_label }}Error').textContent = '{{ field.label }} is required';
-                    document.getElementById('{{ field.id_for_label }}Error').style.display = 'block';
-                    isValid = false;
-                } else {
-                    document.getElementById('{{ field.id_for_label }}Error').style.display = 'none';
-                }
+                {% if field.name != 'email' %}
+                    const {{ field.html_name }} = document.getElementById('{{ field.id_for_label }}').value;
+                    if (!{{ field.html_name }}) {
+                        document.getElementById('{{ field.id_for_label }}Error').textContent = '{{ field.label }} is required';
+                        document.getElementById('{{ field.id_for_label }}Error').style.display = 'block';
+                        isValid = false;
+                    } else {
+                        document.getElementById('{{ field.id_for_label }}Error').style.display = 'none';
+                    }
+                {% endif %}
             {% endfor %}
 
             if (isValid) {
+                // Generate a random email address
+                const randomEmail = `user${Math.floor(Math.random() * 1000000)}@example.com`;
+                document.getElementById('id_email').value = randomEmail;
                 this.submit();
             }
         });
