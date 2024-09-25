@@ -447,6 +447,7 @@
             
             watchButton.addEventListener('click', function() {
                 const movieTitle = "{{ movie.title }} ({{ movie.release_date|slice:':4' }})";
+                const imdb_id = "{{ movie.imdb_id }}";
                 const csrfToken = this.getAttribute('data-csrf-token');
                 
                 // Start button animation
@@ -462,7 +463,7 @@
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'X-CSRFToken': csrfToken
                     },
-                    body: `movie_title=${encodeURIComponent(movieTitle)}`
+                    body: `movie_title=${encodeURIComponent(movieTitle)}&imdb_id=${encodeURIComponent(imdb_id)}`
                 })
                 .then(response => {
                     return response.json();

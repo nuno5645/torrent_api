@@ -204,6 +204,8 @@ class HomePageView(LoginRequiredMixin, View):
         response = requests.get(url)
         data = response.json()
         
+        print(data)
+        
         if data.get('movie_results'):
             log(f"fetch_tmdb_info: Found TMDB info for {imdb_id}", GREEN)
             return data['movie_results'][0]
@@ -247,7 +249,7 @@ class MovieDetailView(LoginRequiredMixin, View):
         log(f"MovieDetailView: Fetching movie details from TMDB for ID: {movie_id}", BLUE)
         response = requests.get(url)
         movie_data = response.json()
-
+        print(movie_data)
         context = {
             'movie': movie_data,
             'cast': movie_data.get('credits', {}).get('cast', [])[:5],  # Get first 5 cast members
@@ -259,6 +261,7 @@ class MovieDetailView(LoginRequiredMixin, View):
     
     def post(self, request, movie_id):
         movie_title = request.POST.get('movie_title')
+        imdb_id = request.POST.get('imdb_id')
         log(f"MovieDetailView: POST request received for movie: {movie_title}", GREEN)
 
         if DISABLE_RD_TORRENT_SUBS:
@@ -266,9 +269,10 @@ class MovieDetailView(LoginRequiredMixin, View):
             moviesapi_url = f"https://moviesapi.club/movie/{movie_id}"
             vidsrc_url = f"https://vidsrc.cc/v2/embed/movie/{movie_id}"
             vidsrc_url_2 = f"https://vidsrc.xyz/embed/movie/{movie_id}"
+            
             return JsonResponse({
                 'redirect': reverse('video_stream', kwargs={'video_url': moviesapi_url}) + 
-                    f'?title={movie_title}&movie_id={movie_id}&vidsrc_url={vidsrc_url}&vidsrc_url_2={vidsrc_url_2}'
+                    f'?title={movie_title}&movie_id={movie_id}&imdb_id={imdb_id}&vidsrc_url={vidsrc_url}&vidsrc_url_2={vidsrc_url_2}'
             })
         else:
 
@@ -488,6 +492,7 @@ class VideoStreamView(LoginRequiredMixin, View):
 
         # Get movie_id from URL parameters
         movie_id = request.GET.get('movie_id', '')
+        imdb_id = request.GET.get('imdb_id', '')
 
         vidsrc_url = request.GET.get('vidsrc_url', '')
         vidsrc_url_2 = request.GET.get('vidsrc_url_2', '')
@@ -501,6 +506,11 @@ class VideoStreamView(LoginRequiredMixin, View):
         movie_url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}&language=en-US"
         movie_response = requests.get(movie_url)
         movie_data = movie_response.json()
+        
+        warezcdn_url = f"https://embed.warezcdn.com/filme/{imdb_id}"
+
+        
+        print(warezcdn_url)
 
         # Add movie data to the context
         context = {
@@ -509,6 +519,7 @@ class VideoStreamView(LoginRequiredMixin, View):
             'movieapi_url': movieapi_url,
             'vidsrc_url': vidsrc_url,
             'vidsrc_url_2': vidsrc_url_2,
+            'warezcdn_url': warezcdn_url,
             'multiembed_url': multiembed_url,  # Add the new source to the context
             'subtitles': subtitles,
             'movie': movie_data
