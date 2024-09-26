@@ -68,6 +68,20 @@
             gap: 10px;
         }
 
+        .user-profile span {
+            margin-right: 10px;
+        }
+
+        .user-profile .nav-link {
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .user-profile .nav-link:hover {
+            background-color: rgba(100, 255, 218, 0.1);
+        }
+
         main {
             padding: 100px 50px 50px;
         }
@@ -539,14 +553,15 @@
         <div class="logo">Flix 🏴‍☠️</div>
         <div class="nav-links">
             <a href="{% url 'homepage' %}" class="nav-link">Home</a>
-            <a href="{% url 'trending' %}" class="nav-link">Trending</a>
+            <a href="{% url 'watch_history' %}" class="nav-link">Watch History</a>
         </div>
         <div class="user-profile">
             {% if user.is_authenticated %}
                 <span>Hi, {{ user.username }}</span>
+                <a href="{% url 'account_logout' %}" class="nav-link">Logout</a>
             {% else %}
-                <a href="{% url 'login' %}" class="nav-link">Login</a>
-                <a href="{% url 'signup' %}" class="nav-link">Sign Up</a>
+                <a href="{% url 'account_login' %}" class="nav-link">Login</a>
+                <a href="{% url 'account_signup' %}" class="nav-link">Sign Up</a>
             {% endif %}
         </div>
     </nav>

@@ -1,58 +1,23 @@
 # Python standard library imports
 import json
-import time
-import zipfile
-import io
-import tempfile
-import re
-import os
+import requests
 from datetime import datetime, timedelta
 from urllib.parse import unquote
 
 # Django imports
 from django.conf import settings
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.forms import AuthenticationForm
-from django.core.cache import cache
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render, redirect
-from django.urls import reverse, reverse_lazy
+from django.shortcuts import render
+from django.urls import reverse
 from django.utils import timezone
-from django.utils.decorators import method_decorator
 from django.views import View
-from django.views.decorators.cache import cache_page
-
-from django.views import View
-from django.http import JsonResponse
 from django.db.models import Q
-from .models import Movie
-# Third-party imports
-import requests
-import webvtt
+from .models import WatchHistory
 
 # Local imports
-from .RD import RealDebridAPI
-from .torrent_api import TorrentAPI
-from .opensubtitles import OpenSubtitlesClient
-from .models import StreamingList, Movie, StreamingListMovie
-
-from django.views import View
-from django.shortcuts import render
-from .models import StreamingList, Movie, StreamingListMovie
-import requests
-from django.utils import timezone
-from datetime import timedelta
-from django.db import transaction
-from allauth.account.views import LoginView, SignupView
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.utils.decorators import method_decorator
-
-
-    # (Previous imports remain the same)
+from .models import Movie, StreamingList, StreamingListMovie
 
 # ANSI color codes
 RED = '\033[91m'
@@ -212,27 +177,6 @@ class HomePageView(LoginRequiredMixin, View):
         log(f"fetch_tmdb_info: No TMDB info found for {imdb_id}", YELLOW)
         return None
 
-class TrendingView(LoginRequiredMixin, View):
-    def get(self, request):
-        log("TrendingView: GET request received", GREEN)
-        api_key = "2480c2206d4661b89bf222cbc9c7f5ea"
-        url = f"https://api.themoviedb.org/3/movie/popular?api_key={api_key}&language=en-US&page=1"
-
-        log("TrendingView: Fetching popular movies from TMDB", BLUE)
-        response = requests.get(url)
-        data = response.json()
-        top_movies = data.get('results', [])[:20]
-
-        movies_json = json.dumps(top_movies)
-        movies_json = json.loads(movies_json)
-
-        context = {
-            'movies_json': movies_json
-        }
-        
-        log("TrendingView: Rendering dashboard with context", GREEN)
-        return render(request, 'dashboard_v2.html', context)
-
 class MovieDetailView(LoginRequiredMixin, View):
     def get(self, request, movie_id):
         log(f"MovieDetailView: GET request received for movie ID: {movie_id}", GREEN)
@@ -266,268 +210,68 @@ class MovieDetailView(LoginRequiredMixin, View):
 
         if DISABLE_RD_TORRENT_SUBS:
             log("MovieDetailView: Real-Debrid, torrent, and subtitles functionality disabled", YELLOW)
-            moviesapi_url = f"https://moviesapi.club/movie/{movie_id}"
-            vidsrc_url = f"https://vidsrc.cc/v2/embed/movie/{movie_id}"
-            vidsrc_url_2 = f"https://vidsrc.xyz/embed/movie/{movie_id}"
+            
+            # Redirect to VideoStreamView with only necessary parameters
+            redirect_url = reverse('video_stream') + f'?movie_id={movie_id}&title={movie_title}&imdb_id={imdb_id}'
             
             return JsonResponse({
-                'redirect': reverse('video_stream', kwargs={'video_url': moviesapi_url}) + 
-                    f'?title={movie_title}&movie_id={movie_id}&imdb_id={imdb_id}&vidsrc_url={vidsrc_url}&vidsrc_url_2={vidsrc_url_2}'
+                'redirect': redirect_url
             })
-        else:
-
-            try:
-                log(f"MovieDetailView: Fetching subtitles for {movie_title}", BLUE)
-                subtitles = self.fetch_subtitles(movie_title)
-            except Exception as e:
-                log(f"MovieDetailView: Error fetching subtitles: {e}", RED)
-                subtitles = []
-
-            torrent_api = TorrentAPI()
-            rd_api = RealDebridAPI("B4YMPW225WYGYYOOSRNEHFQX33WWVQNY7IWCO54XTVSQYNYJEY3Q")
-
-            try:
-                log(f"MovieDetailView: Searching for torrent for {movie_title}", BLUE)
-                magnet_link = self.search_for_torrent(torrent_api, movie_title)
-                if not magnet_link:
-                    log(f"MovieDetailView: No suitable torrent found for: {movie_title}", RED)
-                    return JsonResponse({'error': 'No suitable torrent found'}, status=400)
-
-                log(f"MovieDetailView: Adding torrent to Real-Debrid for {movie_title}", BLUE)
-                torrent_id = self.add_torrent_to_rd(rd_api, magnet_link)
-                
-                if not torrent_id:
-                    log(f"MovieDetailView: Error adding torrent to Real-Debrid for {movie_title}", RED)
-                    return JsonResponse({'error': 'Error adding torrent to Real-Debrid'}, status=400)
-                
-                log(f"MovieDetailView: Processing torrent for {movie_title}", BLUE)
-                file_info = self.process_torrent(rd_api, torrent_id)
-
-                while file_info['status'] != 'downloaded':
-                    log(f"MovieDetailView: Waiting for torrent to download for {movie_title}. Current status: {file_info['status']}", YELLOW)
-                    time.sleep(3)  # Wait for 10 seconds before checking again
-                    file_info = rd_api.get_torrent_info(torrent_id)
-
-                if file_info['status'] == 'downloaded':
-                    log(f"MovieDetailView: Torrent downloaded successfully for {movie_title}", GREEN)
-                    streaming_url, download_url = self.get_streaming_urls(rd_api, file_info)
-                    log(f"MovieDetailView: Streaming URL: {streaming_url}", CYAN)
-                    log(f"MovieDetailView: Download URL: {download_url}", CYAN)
-                    return self.create_response(movie_title, movie_id, download_url, streaming_url, subtitles)
-                else:
-                    log(f"MovieDetailView: Torrent processing failed for: {movie_title}", RED)
-                    return JsonResponse({'error': 'Torrent processing failed'}, status=400)
-
-            except Exception as e:
-                log(f"MovieDetailView: Error processing request: {str(e)}", RED)
-                return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
-
-    def search_for_torrent(self, torrent_api, movie_title):
-        search_sites = ["1337x", "torlock", "zooqle", "piratebay", "tgx", "nyaasi", "bitsearch", "kickass", "libgen", "yts", "limetorrent", "torrentfunk", "glodls", "torrentproject", "ybt"]
-        for site in search_sites:
-            try:
-                log(f"search_for_torrent: Searching for torrent on {site}", BLUE)
-                search_results = torrent_api.search(site, f"{movie_title} 1080p webrip", limit=5)
-                if not search_results.get('error'):
-                    for result in search_results.get('data', []):
-                        if magnet_link := result.get('magnet'):
-                            log(f"search_for_torrent: Found magnet link on {site}", GREEN)
-                            return magnet_link
-            except Exception as e:
-                log(f"search_for_torrent: Error searching on {site}: {str(e)}", RED)
-        return None
-
-    def add_torrent_to_rd(self, rd_api, magnet_link):
-        log(f"add_torrent_to_rd: Adding torrent to Real-Debrid. API: {rd_api}, Magnet: {magnet_link[:50]}...", BLUE)
-        log("add_torrent_to_rd: Adding torrent to Real-Debrid", BLUE)
-        torrent_response = rd_api.add_magnet(magnet_link)
         
-        if torrent_response.get('error'):
-            log(f"add_torrent_to_rd: Error adding torrent: {torrent_response['error']}", RED)
-            return None
-        
-        print(f"Torrent added with ID: {torrent_response}")
-        log(f"add_torrent_to_rd: Torrent added with ID: {torrent_response['id']}", GREEN)
-        return torrent_response['id']
 
-    def process_torrent(self, rd_api, torrent_id):
-        log(f"process_torrent: Processing torrent with ID: {torrent_id}", BLUE)
-        while True:
-            file_info = rd_api.get_torrent_info(torrent_id)
-            if file_info['status'] != "magnet_conversion":
-                break
-            log("process_torrent: Waiting for magnet conversion...", YELLOW)
-            time.sleep(15)
-
-        files = file_info['files']
-        biggest_file = max(files, key=lambda x: x['bytes'])
-        biggest_file_index = files.index(biggest_file)
-
-        log("process_torrent: Selecting biggest file for download", BLUE)
-        rd_api.select_files(torrent_id, biggest_file_index + 1)
-        return rd_api.get_torrent_info(torrent_id)
-
-    def get_streaming_urls(self, rd_api, file_info):
-        log("get_streaming_urls: Getting streaming URLs", BLUE)
-        streaming_link = file_info['links'][0]
-        unrestricted_link = rd_api.unrestrict_link(streaming_link)
-        download_url = unrestricted_link['download']
-        
-        match = re.search(r'/d/([A-Z0-9]+)/', download_url)
-        streaming_url = f"https://real-debrid.com/streaming-{match.group(1)}" if match else download_url
-        
-        log(f"get_streaming_urls: Streaming URL: {streaming_url}", CYAN)
-        log(f"get_streaming_urls: Download URL: {download_url}", CYAN)
-        return streaming_url, download_url
-
-    def create_response(self, movie_title, movie_id, download_url, streaming_url, subtitles):
-        log(f"create_response: Creating response for {movie_title}", BLUE)
-        response = JsonResponse({
-            'redirect': reverse('video_stream', kwargs={'video_url': download_url}) + 
-                f'?title={movie_title}&subtitles={",".join([sub["url"] for sub in subtitles])}&streaming_url={streaming_url}&movie_id={movie_id}'
-        })
-        log(f"create_response: Response created successfully for {movie_title}", GREEN)
-        return response
-                
-    def fetch_subtitles(self, movie_title):
-        log(f"fetch_subtitles: Fetching subtitles for: {movie_title}", BLUE)
-        client = OpenSubtitlesClient()
-        processed_subtitles = []
-
-        try:
-            movie_results = client.get_query_results(f"{movie_title} 1080p webrip")
-            
-            if not movie_results:
-                log(f"fetch_subtitles: No results found for movie: {movie_title}", YELLOW)
-                return []
-
-            first_movie = movie_results[0]
-            movie_id = first_movie.get('id')
-            
-            if not movie_id:
-                log(f"fetch_subtitles: No movie ID found for: {movie_title}", YELLOW)
-                return []
-
-            # Create a folder for the movie
-            movie_folder = os.path.join(settings.MEDIA_ROOT, 'subtitles', movie_title.replace(' ', '_'))
-            os.makedirs(movie_folder, exist_ok=True)
-
-            subtitles = client.get_subtitles_by_id(movie_id)
-            counter = 0
-            for sub in subtitles:
-                try:
-                    if counter == 5:
-                        break
-                    lang = sub.get('lang')
-                    download_url = sub.get('download')
-                    if lang == 'English' and download_url:
-                        counter += 1
-                        log(f"fetch_subtitles: Processing subtitle {counter} for {movie_title}", BLUE)
-                        # Download the zip file
-                        response = requests.get(download_url)
-                        response.raise_for_status()
-
-                        # Extract the subtitle file from the zip
-                        with zipfile.ZipFile(io.BytesIO(response.content)) as z:
-                            subtitle_file = z.namelist()[0]  # Assume the first file is the subtitle
-                            subtitle_content = z.read(subtitle_file)
-
-                        # Save SRT content to a temporary file
-                        with tempfile.NamedTemporaryFile(mode='w+', suffix='.srt', delete=False, encoding='utf-8') as temp_srt:
-                            temp_srt.write(subtitle_content.decode('utf-8'))
-                            temp_srt_path = temp_srt.name
-
-                        # Convert SRT to WebVTT
-                        vtt = webvtt.from_srt(temp_srt_path)
-
-                        # Save the WebVTT file with a unique name in the movie folder
-                        timestamp = int(time.time())
-                        file_name = f"{lang}_{timestamp}_{counter}.vtt"
-                        file_path = os.path.join(movie_folder, file_name)
-                        
-                        vtt.save(file_path)
-
-                        # Remove the temporary SRT file
-                        os.unlink(temp_srt_path)
-
-                        # Generate the URL for the subtitle file
-                        subtitle_url = f"{settings.MEDIA_URL}subtitles/{movie_title.replace(' ', '_')}/{file_name}"
-
-                        processed_subtitles.append({
-                            'lang': lang,
-                            'url': subtitle_url
-                        })
-                        
-                        log(f"fetch_subtitles: Processed subtitle: {processed_subtitles[-1]}", GREEN)
-
-                except Exception as e:
-                    log(f"fetch_subtitles: Error processing subtitle: {str(e)}", RED)
-                    continue
-
-        except Exception as e:
-            log(f"fetch_subtitles: Error fetching subtitles: {str(e)}", RED)
-
-        return processed_subtitles
 class VideoStreamView(LoginRequiredMixin, View):
-    def get(self, request, video_url):
-        log(f"VideoStreamView: GET request received for URL: {video_url}", GREEN)
-        try:
-            response = requests.get(video_url, stream=True)
-            response.raise_for_status()  # Raise an exception for bad status codes
-        except requests.RequestException as e:
-            log(f"VideoStreamView: Error fetching video: {str(e)}", RED)
-            return HttpResponse(f"Error fetching video: {str(e)}", status=500)
+    def get(self, request):
+        movie_id = request.GET.get('movie_id')
+        title = request.GET.get('title')
+        imdb_id = request.GET.get('imdb_id')
 
-        # Get subtitles from URL parameters
-        subtitle_urls = request.GET.get('subtitles', '').split(',')
-        subtitles = [
-            {'lang': 'English', 'url': unquote(url)}
-            for url in subtitle_urls if url
-        ]
-
-        log(f"VideoStreamView: Subtitles: {subtitles}", CYAN)
-
-        # Get streaming_url from URL parameters
-        streaming_url = request.GET.get('streaming_url', '')
-
-        # Get movie_id from URL parameters
-        movie_id = request.GET.get('movie_id', '')
-        imdb_id = request.GET.get('imdb_id', '')
-
-        vidsrc_url = request.GET.get('vidsrc_url', '')
-        vidsrc_url_2 = request.GET.get('vidsrc_url_2', '')
-        # Create the MovieAPI URL
+        # Construct URLs based on movie_id
+         # Create the MovieAPI URL
         movieapi_url = f"https://moviesapi.club/movie/{movie_id}" if movie_id else ''
-        
-        # Add the new multiembed source
+        vidsrc_url = f"https://vidsrc.cc/v2/embed/movie/{movie_id}"
+        vidsrc_url_2 = f"https://vidsrc.xyz/embed/movie/{movie_id}"
         multiembed_url = f"https://multiembed.mov/?video_id={movie_id}&tmdb=1"
-        
+        warezcdn_url = f"https://embed.warezcdn.com/filme/{imdb_id}"
+            
+       
+
         api_key = "2480c2206d4661b89bf222cbc9c7f5ea"
         movie_url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}&language=en-US"
         movie_response = requests.get(movie_url)
         movie_data = movie_response.json()
         
-        warezcdn_url = f"https://embed.warezcdn.com/filme/{imdb_id}"
 
-        
-        print(warezcdn_url)
+
+        # Record the watch history
+        try:
+            movie = Movie.objects.get(tmdb_id=movie_id)
+            WatchHistory.objects.create(
+                user=request.user,
+                movie=movie,
+                watched_at=timezone.now()
+            )
+            log(f"VideoStreamView: Recorded watch history for user {request.user.username} and movie {movie.title}", GREEN)
+        except Movie.DoesNotExist:
+            log(f"VideoStreamView: Movie with ID {movie_id} does not exist.", YELLOW)
 
         # Add movie data to the context
         context = {
-            'stream_url': video_url,
-            'streaming_url': streaming_url,
             'movieapi_url': movieapi_url,
             'vidsrc_url': vidsrc_url,
             'vidsrc_url_2': vidsrc_url_2,
             'warezcdn_url': warezcdn_url,
             'multiembed_url': multiembed_url,  # Add the new source to the context
-            'subtitles': subtitles,
             'movie': movie_data
         }
         log("VideoStreamView: Rendering stream template", GREEN)
         return render(request, 'stream.html', context)
 
-    def stream_video(self, response):
-        log("stream_video: Streaming video content", BLUE)
-        for chunk in response.iter_content(chunk_size=8192):
-            yield chunk
+
+
+class WatchHistoryView(LoginRequiredMixin, View):
+    def get(self, request):
+        watch_history = WatchHistory.objects.filter(user=request.user).order_by('-watched_at')
+        context = {
+            'watch_history': watch_history
+        }
+        return render(request, 'watch_history.html', context)
