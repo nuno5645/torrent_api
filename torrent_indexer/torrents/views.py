@@ -379,16 +379,16 @@ class VideoStreamView(LoginRequiredMixin, View):
 
 
         # Record the watch history
-        try:
-            movie = Movie.objects.get(tmdb_id=movie_id)
+        movie, created = Movie.objects.get_or_create(tmdb_id=movie_id)
+        if created:
+            log(f"VideoStreamView: Movie with ID {movie_id} does not exist.", YELLOW)
+        else:
             WatchHistory.objects.create(
                 user=request.user,
                 movie=movie,
                 watched_at=timezone.now()
             )
             log(f"VideoStreamView: Recorded watch history for user {request.user.username} and movie {movie.title}", GREEN)
-        except Movie.DoesNotExist:
-            log(f"VideoStreamView: Movie with ID {movie_id} does not exist.", YELLOW)
 
         # Add movie data to the context
         context = {
