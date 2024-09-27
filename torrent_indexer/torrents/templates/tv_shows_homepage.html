@@ -574,7 +574,7 @@
         </div>
     </div>
     <div id="tvShowRows">
-        {% for tv_show_list in tv_show_lists %}
+        {% for tv_show_list in tv_show_lists|slice:"1:" %}
             <div class="tv-show-row">
                 <div class="row-header">
                     <h2 class="row-title">{{ tv_show_list.title }}</h2>
