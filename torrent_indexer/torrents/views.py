@@ -14,7 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views import View
 from django.db.models import Q
-from .models import WatchHistory, TVShow, Season, Episode, TVShowWatchHistory
+from .models import TVShowStreamingList, TVShowStreamingListShow, WatchHistory, TVShow, Season, Episode, TVShowWatchHistory
 
 # Local imports
 from .models import Movie, StreamingList, StreamingListMovie
@@ -178,6 +178,141 @@ class HomePageView(LoginRequiredMixin, View):
         log(f"fetch_tmdb_info: No TMDB info found for {imdb_id}", YELLOW)
         return None
 
+
+class TVShowHomePageView(LoginRequiredMixin, View):
+    
+    def get(self, request):
+        log("TVShowHomePageView: GET request received", GREEN)
+        
+        latest_tv_shows = self.get_or_create_tv_list("Latest TV Shows", "https://mdblist.com/lists/garycrawfordgc/latest-tv-shows/json")
+        netflix_shows = self.get_or_create_tv_list("Netflix Shows", "https://mdblist.com/lists/garycrawfordgc/netflix-shows/json")
+        hbo_shows = self.get_or_create_tv_list("HBO Shows", "https://mdblist.com/lists/garycrawfordgc/hbo-shows/json")
+
+        context = {
+            'tv_show_lists': [
+                {"title": "Latest TV Shows", "tv_shows": latest_tv_shows},
+                {"title": "Netflix Shows", "tv_shows": netflix_shows},
+                {"title": "HBO Shows", "tv_shows": hbo_shows}
+            ]
+        }
+        
+        print(context)
+        
+        log("TVShowHomePageView: Rendering TV show homepage with context", GREEN)
+        return render(request, 'tv_shows_homepage.html', context)
+
+    def get_or_create_tv_list(self, list_name, url):
+        log(f"get_or_create_tv_list: Processing {list_name}", BLUE)
+        streaming_list, created = TVShowStreamingList.objects.get_or_create(
+            name=list_name,
+            url=url
+        )
+        
+        if created:
+            log(f"get_or_create_tv_list: Created new TVShowStreamingList '{list_name}'", GREEN)
+        else:
+            log(f"get_or_create_tv_list: Retrieved existing TVShowStreamingList '{list_name}'", BLUE)
+
+        if created or streaming_list.last_updated is None or self.should_update(streaming_list):
+            log(f"get_or_create_tv_list: Fetching fresh data for '{list_name}'", YELLOW)
+            self.fetch_and_process_tv_data(streaming_list)
+            streaming_list.last_updated = timezone.now()
+            streaming_list.save()
+            log(f"get_or_create_tv_list: Updated '{list_name}' with fresh data", GREEN)
+        else:
+            log(f"get_or_create_tv_list: Using existing data for '{list_name}'", BLUE)
+            self.fetch_and_process_tv_data(streaming_list)
+
+        return streaming_list.tv_shows.all().order_by('tvshowstreaminglistshow__position')
+
+    def should_update(self, streaming_list):
+        should_update = timezone.now() - streaming_list.last_updated > timedelta(hours=24)
+        log(f"should_update: List '{streaming_list.name}' should update: {should_update}", CYAN)
+        return should_update
+
+    @transaction.atomic
+    def fetch_and_process_tv_data(self, streaming_list):
+        log(f"fetch_and_process_tv_data: Starting for '{streaming_list.name}'", BLUE)
+        
+        print(streaming_list.url)
+        
+        
+        response = requests.get(streaming_list.url)
+                
+        mdblist_data = response.json()
+        
+        #limit the mdblist_data to 10 items
+        mdblist_data = mdblist_data[:30]
+        
+        current_tv_shows = set(streaming_list.tv_shows.values_list('imdb_id', flat=True))
+        new_tv_shows = set()
+
+        for position, item in enumerate(mdblist_data, start=1):
+            if item.get('mediatype') == 'show':
+                log(f"fetch_and_process_tv_data: Processing TV show {item.get('title')}", CYAN)
+                tmdb_info = self.fetch_tmdb_tv_info(item.get('id'))
+                if tmdb_info:
+                    tv_show_data = {
+                        'imdb_id': item.get('imdb_id'),
+                        'title': item['title'],
+                        'first_air_date': item.get('release_date'),
+                    }
+                    
+                    print(tmdb_info.get('poster_path'))
+                    
+                    if tmdb_info:
+                        tv_show_data.update({
+                            'tmdb_id':item.get('id'),
+                            'overview': tmdb_info.get('overview'),
+                            'poster_path': tmdb_info.get('poster_path'),
+                            'backdrop_path': tmdb_info.get('backdrop_path'),
+                            'vote_average': tmdb_info.get('vote_average'),
+                            'vote_count': tmdb_info.get('vote_count'),
+                            'popularity': tmdb_info.get('popularity')
+                        })
+                try:
+                    tv_show, created = TVShow.objects.update_or_create(
+                        tmdb_id=item.get('id'),
+                        defaults=tv_show_data
+                    )
+                    TVShowStreamingListShow.objects.update_or_create(
+                    streaming_list=streaming_list,
+                    tv_show=tv_show,
+                        defaults={'position': position}
+                    )
+                    log(f"fetch_and_process_tv_data: {'Created' if created else 'Updated'} TV show {item.get('imdb_id')}", GREEN)
+                except Exception as e:
+                    log(f"fetch_and_process_tv_data: Error creating TV show {item.get('title')}: {e}", RED)
+
+                    tv_show = TVShow.objects.get(tmdb_id=item.get('id'))
+
+                    TVShowStreamingListShow.objects.update_or_create(
+                        streaming_list=streaming_list,
+                        tv_show=tv_show,
+                        defaults={'position': position}
+                    )
+
+        # # Remove TV shows that are no longer in the list
+        # tv_shows_to_remove = current_tv_shows - new_tv_shows
+        # removed_count = TVShowStreamingListShow.objects.filter(
+        #     streaming_list=streaming_list, 
+        #     tv_show__imdb_id__in=tv_shows_to_remove
+        # ).delete()[0]
+        # log(f"fetch_and_process_tv_data: Removed {removed_count} TV shows from '{streaming_list.name}'", YELLOW)
+
+    def fetch_tmdb_tv_info(self, tmdb_id):
+        log(f"fetch_tmdb_tv_info: Fetching TMDB info for tmdb ID: {tmdb_id}", BLUE)
+        api_key = "2480c2206d4661b89bf222cbc9c7f5ea"
+        url = f"https://api.themoviedb.org/3/tv/{tmdb_id}?api_key={api_key}&language=en-US"
+
+        response = requests.get(url)
+        data = response.json()
+                
+        if data:
+            return data
+        
+        log(f"fetch_tmdb_tv_info: No TMDB info found for {tmdb_id}", YELLOW)
+        return None
 class MovieDetailView(LoginRequiredMixin, View):
     def get(self, request, movie_id):
         log(f"MovieDetailView: GET request received for movie ID: {movie_id}", GREEN)

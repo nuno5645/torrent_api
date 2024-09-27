@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flix 🏴‍☠️ - Modern Streaming Platform</title>
+    <title>Flix 🏴‍☠️ - TV Shows</title>
     <style>
         :root {
             --primary-bg: #0a192f;
@@ -194,7 +194,7 @@
             color: var(--secondary-text);
         }
 
-        .movie-row {
+        .tv-show-row {
             margin-bottom: 40px;
             position: relative;
             padding: 20px 0;
@@ -222,7 +222,7 @@
             color: var(--accent-color);
         }
 
-        .movie-slider {
+        .tv-show-slider {
             display: flex;
             overflow-x: hidden;
             scroll-behavior: smooth;
@@ -230,7 +230,7 @@
             padding: 20px 0;
         }
 
-        .movie-card {
+        .tv-show-card {
             flex: 0 0 auto;
             width: 200px;
             height: 300px;
@@ -243,23 +243,23 @@
             box-shadow: 0 4px 20px rgba(100, 255, 218, 0.1);
         }
 
-        .movie-card:hover {
+        .tv-show-card:hover {
             transform: translateY(-10px);
             box-shadow: 0 10px 30px rgba(100, 255, 218, 0.2);
         }
 
-        .movie-poster {
+        .tv-show-poster {
             width: 100%;
             height: 100%;
             object-fit: cover;
             transition: all 0.3s ease;
         }
 
-        .movie-card:hover .movie-poster {
+        .tv-show-card:hover .tv-show-poster {
             transform: scale(1.05);
         }
 
-        .movie-info {
+        .tv-show-info {
             position: absolute;
             bottom: 0;
             left: 0;
@@ -270,18 +270,18 @@
             transition: all 0.3s ease;
         }
 
-        .movie-card:hover .movie-info {
+        .tv-show-card:hover .tv-show-info {
             transform: translateY(0);
         }
 
-        .movie-title {
+        .tv-show-title {
             font-size: 16px;
             font-weight: bold;
             margin-bottom: 5px;
             color: var(--accent-color);
         }
 
-        .movie-genre {
+        .tv-show-genre {
             font-size: 14px;
             color: var(--secondary-text);
         }
@@ -366,7 +366,7 @@
                 width: 100%;
             }
 
-            .movie-row {
+            .tv-show-row {
                 margin-bottom: 30px;
             }
 
@@ -379,25 +379,25 @@
                 margin-top: 5px;
             }
 
-            .movie-slider {
+            .tv-show-slider {
                 padding: 10px 0;
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
                 scroll-snap-type: x mandatory;
             }
 
-            .movie-card {
+            .tv-show-card {
                 width: 160px;
                 height: 240px;
                 margin-right: 15px;
                 scroll-snap-align: start;
             }
 
-            .movie-title {
+            .tv-show-title {
                 font-size: 16px;
             }
 
-            .movie-genre {
+            .tv-show-genre {
                 font-size: 14px;
             }
 
@@ -442,21 +442,20 @@
                 font-size: 20px;
             }
 
-            .movie-card {
+            .tv-show-card {
                 width: 140px;
                 height: 210px;
             }
 
-            .movie-title {
+            .tv-show-title {
                 font-size: 15px;
             }
 
-            .movie-genre {
+            .tv-show-genre {
                 font-size: 13px;
             }
         }
 
-        /* New styles for animations and interactivity */
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -490,11 +489,11 @@
             transform: translateY(0);
         }
 
-        .movie-card {
+        .tv-show-card {
             transition: all 0.3s ease, transform 0.2s ease;
         }
 
-        .movie-card:hover {
+        .tv-show-card:hover {
             transform: scale(1.05) translateY(-10px);
         }
 
@@ -552,172 +551,170 @@
     <nav class="navbar">
         <div class="logo">Flix 🏴‍☠️</div>
         <div class="nav-links">
-            <a href="{% url 'homepage' %}" class="nav-link">Home</a>
-            <a href="{% url 'watch_history' %}" class="nav-link">Watch History</a>
+            <a href="{% url 'homepage' %}" class="nav-link">Movies</a>
             <a href="{% url 'tv_show_homepage' %}" class="nav-link">TV Shows</a>
+            <a href="{% url 'watch_history' %}" class="nav-link">Watch History</a>
         </div>
         <div class="user-profile">
             {% if user.is_authenticated %}
-                <span>Hi, {{ user.username }}</span>
-                <a href="{% url 'account_logout' %}" class="nav-link">Logout</a>
-            {% else %}
-                <a href="{% url 'account_login' %}" class="nav-link">Login</a>
-                <a href="{% url 'account_signup' %}" class="nav-link">Sign Up</a>
-            {% endif %}
+            <span>Hi, {{ user.username }}</span>
+            <a href="{% url 'account_logout' %}" class="nav-link">Logout</a>
+        {% else %}
+            <a href="{% url 'account_login' %}" class="nav-link">Login</a>
+            <a href="{% url 'account_signup' %}" class="nav-link">Sign Up</a>
+        {% endif %}
+    </div>
+</nav>
+<main>
+    <div class="header">
+        <div class="search-container">
+            <input type="text" id="search-input" class="search-input" placeholder="Search TV shows..." aria-label="Search TV shows">
+            <button id="search-button" class="search-button" aria-label="Search">🔍</button>
+            <div id="search-results" class="search-results"></div>
         </div>
-    </nav>
-    <main>
-        <div class="header">
-            <div class="search-container">
-                <input type="text" id="search-input" class="search-input" placeholder="Search movies..." aria-label="Search movies">
-                <button id="search-button" class="search-button" aria-label="Search">🔍</button>
-                <div id="search-results" class="search-results"></div>
-            </div>
-        </div>
-        <div id="movieRows">
-            {% for movie_list in movie_lists %}
-                <div class="movie-row">
-                    <div class="row-header">
-                        <h2 class="row-title">{{ movie_list.title }}</h2>
-                        <a href="#" class="see-all">See All</a>
-                    </div>
-                    <div class="movie-slider">
-                        {% for movie in movie_list.movies %}
-                            <div class="movie-card" onclick="window.location.href='/{{ movie.tmdb_id }}'">
-                                <img class="movie-poster" src="https://image.tmdb.org/t/p/w200{{ movie.poster_path|default:'' }}" alt="{{ movie.title }}">
-                                <div class="movie-info">
-                                    <div class="movie-title">{{ movie.title }}</div>
-                                    <div class="movie-genre">{{ movie.mediatype }}</div>
-                                </div>
-                                <div class="rating">{{ movie.vote_average|floatformat:1 }}</div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                    <button class="slider-control left" onclick="slide(this, -1)">❮</button>
-                    <button class="slider-control right" onclick="slide(this, 1)">❯</button>
+    </div>
+    <div id="tvShowRows">
+        {% for tv_show_list in tv_show_lists %}
+            <div class="tv-show-row">
+                <div class="row-header">
+                    <h2 class="row-title">{{ tv_show_list.title }}</h2>
+                    <a href="#" class="see-all">See All</a>
                 </div>
-            {% endfor %}
-        </div>
-    </main>
+                <div class="tv-show-slider">
+                    {% for tv_show in tv_show_list.tv_shows %}
+                        <div class="tv-show-card" onclick="window.location.href='/tv/{{ tv_show.tmdb_id }}'">
+                            <img class="tv-show-poster" src="https://image.tmdb.org/t/p/w500{{ tv_show.poster_path}}" alt="{{ tv_show.title }}">
+                            <div class="tv-show-info">
+                                <div class="tv-show-title">{{ tv_show.title }}</div>
+                                <div class="tv-show-genre">{{ tv_show.first_air_date|date:"Y" }}</div>
+                            </div>
+                            <div class="rating">{{ tv_show.vote_average|floatformat:1 }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <button class="slider-control left" onclick="slide(this, -1)">❮</button>
+                <button class="slider-control right" onclick="slide(this, 1)">❯</button>
+            </div>
+        {% endfor %}
+    </div>
+</main>
 
-    <div class="scroll-to-top">↑</div>
+<div class="scroll-to-top">↑</div>
 
-    <script>
-        function slide(button, direction) {
-            const slider = button.parentElement.querySelector('.movie-slider');
-            const sliderWidth = slider.clientWidth;
-            const scrollAmount = sliderWidth * 0.8 * direction;
-            slider.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+<script>
+    function slide(button, direction) {
+        const slider = button.parentElement.querySelector('.tv-show-slider');
+        const sliderWidth = slider.clientWidth;
+        const scrollAmount = sliderWidth * 0.8 * direction;
+        slider.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+
+    window.addEventListener('scroll', () => {
+        const navbar = document.querySelector('.navbar');
+        if (window.scrollY > 50) {
+            navbar.classList.add('scrolled');
+        } else {
+            navbar.classList.remove('scrolled');
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('search-input');
+        const searchButton = document.getElementById('search-button');
+        const searchResults = document.getElementById('search-results');
+        let searchTimeout;
+
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(performSearch, 300);
+        });
+
+        searchInput.addEventListener('focus', function() {
+            searchResults.classList.add('active');
+        });
+
+        searchButton.addEventListener('click', performSearch);
+
+        document.addEventListener('click', function(event) {
+            if (!searchInput.contains(event.target) && !searchResults.contains(event.target)) {
+                searchResults.classList.remove('active');
+            }
+        });
+
+        function performSearch() {
+            const query = searchInput.value.trim();
+            if (query.length > 2) {
+                showLoadingAnimation();
+                fetch(`/tv/search/?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        hideLoadingAnimation();
+                        displaySearchResults(data);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        hideLoadingAnimation();
+                    });
+            } else {
+                searchResults.innerHTML = '';
+                searchResults.classList.remove('active');
+            }
         }
 
-        window.addEventListener('scroll', () => {
-            const navbar = document.querySelector('.navbar');
-            if (window.scrollY > 50) {
-                navbar.classList.add('scrolled');
+        function showLoadingAnimation() {
+            searchResults.innerHTML = '<div class="loading-animation"><div></div><div></div><div></div></div>';
+            searchResults.classList.add('active');
+            document.querySelector('.loading-animation').style.display = 'flex';
+        }
+
+        function hideLoadingAnimation() {
+            document.querySelector('.loading-animation').style.display = 'none';
+        }
+
+        function displaySearchResults(results) {
+            searchResults.innerHTML = '';
+            
+            if (results.length === 0) {
+                searchResults.innerHTML = '<p style="padding: 15px; text-align: center;">No results found</p>';
             } else {
-                navbar.classList.remove('scrolled');
-            }
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('search-input');
-            const searchButton = document.getElementById('search-button');
-            const searchResults = document.getElementById('search-results');
-            let searchTimeout;
-
-            searchInput.addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(performSearch, 300);
-            });
-
-            searchInput.addEventListener('focus', function() {
-                searchResults.classList.add('active');
-            });
-
-            searchButton.addEventListener('click', performSearch);
-
-            document.addEventListener('click', function(event) {
-                if (!searchInput.contains(event.target) && !searchResults.contains(event.target)) {
-                    searchResults.classList.remove('active');
-                }
-            });
-
-            function performSearch() {
-                const query = searchInput.value.trim();
-                if (query.length > 2) {
-                    showLoadingAnimation();
-                    fetch(`/search/?q=${encodeURIComponent(query)}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            hideLoadingAnimation();
-                            displaySearchResults(data);
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            hideLoadingAnimation();
-                        });
-                } else {
-                    searchResults.innerHTML = '';
-                    searchResults.classList.remove('active');
-                }
-            }
-
-            function showLoadingAnimation() {
-                searchResults.innerHTML = '<div class="loading-animation"><div></div><div></div><div></div></div>';
-                searchResults.classList.add('active');
-                document.querySelector('.loading-animation').style.display = 'flex';
-            }
-
-            function hideLoadingAnimation() {
-                document.querySelector('.loading-animation').style.display = 'none';
-            }
-
-            function displaySearchResults(results) {
-                searchResults.innerHTML = '';
-                
-                if (results.length === 0) {
-                    searchResults.innerHTML = '<p style="padding: 15px; text-align: center;">No results found</p>';
-                } else {
-                    const ul = document.createElement('ul');
-                    results.forEach(movie => {
-                        const li = document.createElement('li');
-                        li.innerHTML = `
-                            <img src="https://image.tmdb.org/t/p/w92${movie.poster_path}" alt="${movie.title} poster">
-                            <div>
-                                <h3>${movie.title} (${movie.release_year})</h3>
-                                <p>Rating: ${movie.vote_average}</p>
-                            </div>
-                        `;
-                        li.addEventListener('click', () => {
-                            window.location.href = `/${movie.id}`;
-                        });
-                        ul.appendChild(li);
+                const ul = document.createElement('ul');
+                results.forEach(tvShow => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <img src="https://image.tmdb.org/t/p/w92${tvShow.poster_path}" alt="${tvShow.title} poster">
+                        <div>
+                            <h3>${tvShow.title} (${new Date(tvShow.first_air_date).getFullYear()})</h3>
+                            <p>Rating: ${tvShow.vote_average}</p>
+                        </div>
+                    `;
+                    li.addEventListener('click', () => {
+                        window.location.href = `/tv/${tvShow.id}`;
                     });
-                    searchResults.appendChild(ul);
-                }
-                
-                searchResults.classList.add('active');
-            }
-
-            // New JavaScript for animations and interactivity
-            const scrollToTopButton = document.querySelector('.scroll-to-top');
-
-            // Scroll to top functionality
-            window.addEventListener('scroll', () => {
-                if (window.scrollY > 300) {
-                    scrollToTopButton.classList.add('visible');
-                } else {
-                    scrollToTopButton.classList.remove('visible');
-                }
-            });
-
-            scrollToTopButton.addEventListener('click', () => {
-                window.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
+                    ul.appendChild(li);
                 });
+                searchResults.appendChild(ul);
+            }
+            
+            searchResults.classList.add('active');
+        }
+
+        const scrollToTopButton = document.querySelector('.scroll-to-top');
+
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                scrollToTopButton.classList.add('visible');
+            } else {
+                scrollToTopButton.classList.remove('visible');
+            }
+        });
+
+        scrollToTopButton.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
             });
         });
-    </script>
+    });
+</script>
 </body>
 </html>

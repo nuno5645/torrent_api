@@ -135,3 +135,17 @@ class TVShowWatchHistory(models.Model):
 
     def __str__(self):
         return f"{self.user.username} watched {self.episode} at {self.watched_at}"
+
+class TVShowStreamingList(models.Model):
+    name = models.CharField(max_length=255)
+    url = models.URLField()
+    last_updated = models.DateTimeField(null=True, blank=True)
+    tv_shows = models.ManyToManyField(TVShow, through='TVShowStreamingListShow')
+
+class TVShowStreamingListShow(models.Model):
+    streaming_list = models.ForeignKey(TVShowStreamingList, on_delete=models.CASCADE)
+    tv_show = models.ForeignKey(TVShow, on_delete=models.CASCADE)
+    position = models.IntegerField()
+
+    class Meta:
+        ordering = ['position']
