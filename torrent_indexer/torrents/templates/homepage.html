@@ -546,6 +546,31 @@
         .logo:hover::after {
             left: 100%;
         }
+
+        .ad-warning {
+            background-color: rgba(255, 255, 0, 0.1);
+            border: 1px solid rgba(255, 255, 0, 0.3);
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .ad-warning p {
+            color: var(--accent-color);
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .ad-warning a {
+            color: var(--accent-color);
+            text-decoration: underline;
+        }
+
+        .ad-warning a:hover {
+            color: var(--primary-text);
+        }
+
     </style>
 </head>
 <body>
@@ -567,6 +592,9 @@
         </div>
     </nav>
     <main>
+        <div class="ad-warning">
+            <p>⚠️ Warning: Some content may contain ads. For a better experience, we recommend using <a href="https://chromewebstore.google.com/detail/ublock-origin/cjpalhdlnbpafiamejdnhcphjbkeiagm" target="_blank" rel="noopener noreferrer">uBlock Origin</a> or <a href="https://chromewebstore.google.com/detail/bkkbcggnhapdmkeljlodobbkopceiche/privacy" target="_blank" rel="noopener noreferrer">Pop Up Blocker</a> on Google Chrome.</p>
+        </div>
         <div class="header">
             <div class="search-container">
                 <input type="text" id="search-input" class="search-input" placeholder="Search movies..." aria-label="Search movies">
