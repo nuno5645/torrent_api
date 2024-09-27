@@ -9,12 +9,12 @@ from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views import View
 from django.db.models import Q
-from .models import WatchHistory
+from .models import WatchHistory, TVShow, Season, Episode, TVShowWatchHistory
 
 # Local imports
 from .models import Movie, StreamingList, StreamingListMovie
@@ -54,6 +54,7 @@ class SearchView(View):
             ]
             return JsonResponse(results, safe=False)
         return JsonResponse([], safe=False)
+    
 class HomePageView(LoginRequiredMixin, View):
     
     def get(self, request):
@@ -275,3 +276,151 @@ class WatchHistoryView(LoginRequiredMixin, View):
             'watch_history': watch_history
         }
         return render(request, 'watch_history.html', context)
+
+class TVShowSearchView(View):
+    def get(self, request):
+        query = request.GET.get('q', '').strip()
+        if len(query) >= 3:
+            tv_shows = TVShow.objects.filter(
+                Q(title__icontains=query) |
+                Q(overview__icontains=query)
+            )[:10]  # Limit to 10 results for performance
+
+            results = [
+                {
+                    'id': show.tmdb_id,
+                    'title': show.title,
+                    'first_air_date': show.first_air_date,
+                    'poster_path': show.poster_path,
+                    'vote_average': show.vote_average
+                }
+                for show in tv_shows
+            ]
+            return JsonResponse(results, safe=False)
+        return JsonResponse([], safe=False)
+
+class TVShowDetailView(LoginRequiredMixin, View):
+    def get(self, request, show_id):
+        log(f"TVShowDetailView: GET request received for show ID: {show_id}", GREEN)
+        api_key = "2480c2206d4661b89bf222cbc9c7f5ea"
+        url = f"https://api.themoviedb.org/3/tv/{show_id}?api_key={api_key}&language=en-US&append_to_response=credits,seasons,external_ids"
+        
+        log(f"TVShowDetailView: Fetching TV show details from TMDB for ID: {show_id}", BLUE)
+        response = requests.get(url)
+        show_data = response.json()
+        
+        #print the show data and make it visible in the terminal in a readable format
+        print(json.dumps(show_data, indent=4))
+        
+        # Fetch or create TVShow object
+        tv_show, created = TVShow.objects.update_or_create(
+            tmdb_id=show_data['id'],
+            defaults={
+                'title': show_data['name'],
+                'imdb_id': show_data['external_ids']['imdb_id'],
+                'overview': show_data['overview'],
+                'poster_path': show_data['poster_path'],
+                'backdrop_path': show_data['backdrop_path'],
+                'first_air_date': show_data['first_air_date'],
+                'vote_average': show_data['vote_average'],
+                'vote_count': show_data['vote_count'],
+                'popularity': show_data['popularity'],
+            }
+        )
+
+        # Update or create seasons and episodes
+        seasons_with_episodes = []
+        for season_data in show_data['seasons']:
+            season, _ = Season.objects.update_or_create(
+                tv_show=tv_show,
+                season_number=season_data['season_number'],
+                defaults={
+                    'name': season_data['name'],
+                    'overview': season_data['overview'],
+                    'poster_path': season_data['poster_path'],
+                    'air_date': season_data['air_date'],
+                }
+            )
+            
+            # Fetch episode data for each season
+            season_url = f"https://api.themoviedb.org/3/tv/{show_id}/season/{season_data['season_number']}?api_key={api_key}&language=en-US"
+            season_response = requests.get(season_url)
+            season_details = season_response.json()
+            
+            episodes = []
+            for episode_data in season_details['episodes']:
+                episode, _ = Episode.objects.update_or_create(
+                    season=season,
+                    episode_number=episode_data['episode_number'],
+                    defaults={
+                        'name': episode_data['name'],
+                        'overview': episode_data['overview'],
+                        'air_date': episode_data['air_date'],
+                    }
+                )
+                episodes.append(episode_data)
+            
+            season_data['episodes'] = episodes
+            seasons_with_episodes.append(season_data)
+
+        context = {
+            'show': show_data,
+            'cast': show_data.get('credits', {}).get('cast', [])[:5],  # Get first 5 cast members
+            'seasons': seasons_with_episodes,
+        }
+
+        log("TVShowDetailView: Rendering TV show detail page", GREEN)
+        return render(request, 'tv_show_detail.html', context)
+
+    def post(self, request, show_id):
+        season = request.POST.get('season')
+        episode = request.POST.get('episode')
+        imdb_id = request.POST.get('imdb_id')
+        if season and episode:
+            return redirect('tv_stream', show_id=show_id, season=season, episode=episode, imdb_id=imdb_id)
+        else:
+            return JsonResponse({'error': 'Invalid season or episode'}, status=400)
+
+
+class TVShowStreamView(LoginRequiredMixin, View):
+    def get(self, request, show_id, season, episode, imdb_id):
+        # Use the parameters directly from the URL
+        season_number = season
+        episode_number = episode
+
+        # Construct URLs based on show_id, season, and episode
+        vidsrc_url = f"https://vidsrc.cc/v2/embed/tv/{show_id}/{season_number}/{episode_number}"
+        vidsrc_url_2 = f"https://vidsrc.xyz/embed/tv/{show_id}/{season_number}/{episode_number}"
+        multiembed_url = f"https://multiembed.mov/?video_id={show_id}&tmdb=1&s={season_number}&e={episode_number}"
+        warezcdn_url = f"https://embed.warezcdn.com/serie/{imdb_id}/{season_number}/{episode_number}"
+        
+        print(warezcdn_url)
+
+        api_key = "2480c2206d4661b89bf222cbc9c7f5ea"
+        episode_url = f"https://api.themoviedb.org/3/tv/{show_id}/season/{season_number}/episode/{episode_number}?api_key={api_key}&language=en-US"
+        episode_response = requests.get(episode_url)
+        episode_data = episode_response.json()
+
+        # Record the watch history
+        try:
+            tv_show = TVShow.objects.get(tmdb_id=show_id)
+            season = Season.objects.get(tv_show=tv_show, season_number=season_number)
+            episode = Episode.objects.get(season=season, episode_number=episode_number)
+            TVShowWatchHistory.objects.create(
+                user=request.user,
+                episode=episode,
+                watched_at=timezone.now()
+            )
+            log(f"TVShowStreamView: Recorded watch history for user {request.user.username} and episode {episode}", GREEN)
+        except (TVShow.DoesNotExist, Season.DoesNotExist, Episode.DoesNotExist):
+            log(f"TVShowStreamView: TV show, season, or episode does not exist.", YELLOW)
+
+        context = {
+            'vidsrc_url': vidsrc_url,
+            'vidsrc_url_2': vidsrc_url_2,
+            'multiembed_url': multiembed_url,
+            'warezcdn_url': warezcdn_url,
+            'episode': episode_data,
+        }
+        log("TVShowStreamView: Rendering TV show stream template", GREEN)
+        return render(request, 'tv_stream.html', context)

@@ -84,4 +84,54 @@ class RealDebrid(models.Model):
 
     def __str__(self):
         return f"RD: {self.torrent.name}"
-    
+class TVShow(models.Model):
+    tmdb_id = models.IntegerField(unique=True)
+    imdb_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    tvdb_id = models.IntegerField(null=True, blank=True)
+    title = models.CharField(max_length=255)
+    overview = models.TextField(null=True, blank=True)
+    poster_path = models.CharField(max_length=255, null=True, blank=True)
+    backdrop_path = models.CharField(max_length=255, null=True, blank=True)
+    first_air_date = models.DateField(null=True, blank=True)
+    vote_average = models.FloatField(null=True, blank=True)
+    vote_count = models.IntegerField(null=True, blank=True)
+    popularity = models.FloatField(null=True, blank=True)
+
+    def __str__(self):
+        return self.title
+
+class Season(models.Model):
+    tv_show = models.ForeignKey(TVShow, on_delete=models.CASCADE, related_name='seasons')
+    season_number = models.IntegerField()
+    name = models.CharField(max_length=255)
+    overview = models.TextField(null=True, blank=True)
+    poster_path = models.CharField(max_length=255, null=True, blank=True)
+    air_date = models.DateField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('tv_show', 'season_number')
+
+    def __str__(self):
+        return f"{self.tv_show.title} - Season {self.season_number}"
+
+class Episode(models.Model):
+    season = models.ForeignKey(Season, on_delete=models.CASCADE, related_name='episodes')
+    episode_number = models.IntegerField()
+    name = models.CharField(max_length=255)
+    overview = models.TextField(null=True, blank=True)
+    still_path = models.CharField(max_length=255, null=True, blank=True)
+    air_date = models.DateField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('season', 'episode_number')
+
+    def __str__(self):
+        return f"{self.season.tv_show.title} - S{self.season.season_number:02d}E{self.episode_number:02d} - {self.name}"
+
+class TVShowWatchHistory(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tv_watch_history')
+    episode = models.ForeignKey(Episode, on_delete=models.CASCADE, related_name='watch_history')
+    watched_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} watched {self.episode} at {self.watched_at}"
