@@ -221,7 +221,7 @@ class TVShowHomePageView(LoginRequiredMixin, View):
             log(f"get_or_create_tv_list: Updated '{list_name}' with fresh data", GREEN)
         else:
             log(f"get_or_create_tv_list: Using existing data for '{list_name}'", BLUE)
-            self.fetch_and_process_tv_data(streaming_list)
+            #self.fetch_and_process_tv_data(streaming_list)
 
         return streaming_list.tv_shows.all().order_by('tvshowstreaminglistshow__position')
 
