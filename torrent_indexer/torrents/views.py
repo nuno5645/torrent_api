@@ -191,9 +191,9 @@ class TVShowHomePageView(LoginRequiredMixin, View):
         context = {
             'tv_show_lists': [
                 {"title": "Latest TV Shows", "tv_shows": latest_tv_shows},
+                {"title": "IMDB Most Votes", "tv_shows": imdb_100k_votes},
                 {"title": "Netflix Shows", "tv_shows": netflix_shows},
                 {"title": "HBO Shows", "tv_shows": hbo_shows},
-                {"title": "IMDB Most Votes", "tv_shows": imdb_100k_votes}
             ]
         }
                 
@@ -222,7 +222,7 @@ class TVShowHomePageView(LoginRequiredMixin, View):
             log(f"get_or_create_tv_list: Using existing data for '{list_name}'", BLUE)
             #self.fetch_and_process_tv_data(streaming_list)
 
-        return streaming_list.tv_shows.all().order_by('tvshowstreaminglistshow__position')
+        return streaming_list.tv_shows.all().order_by('-tvshowstreaminglistshow__tv_show__popularity')
 
     def should_update(self, streaming_list):
         should_update = timezone.now() - streaming_list.last_updated > timedelta(hours=24)
@@ -291,6 +291,8 @@ class TVShowHomePageView(LoginRequiredMixin, View):
                             tv_show=tv_show,
                             defaults={'position': position}
                         )
+                        
+                        
 
         # # Remove TV shows that are no longer in the list
         # tv_shows_to_remove = current_tv_shows - new_tv_shows
