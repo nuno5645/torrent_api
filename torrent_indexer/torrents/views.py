@@ -19,6 +19,10 @@ from .models import TVShowStreamingList, TVShowStreamingListShow, WatchHistory, 
 # Local imports
 from .models import Movie, StreamingList, StreamingListMovie
 
+
+from bs4 import BeautifulSoup
+
+
 # ANSI color codes
 RED = '\033[91m'
 GREEN = '\033[92m'
@@ -64,9 +68,6 @@ class HomePageView(LoginRequiredMixin, View):
         recommended_new = self.get_or_create_list("Recommended New", "https://mdblist.com/lists/zeroq/recommended-new-on-stremio/json")
         weekend_box_office = self.get_or_create_list("Weekend Box Office", "https://mdblist.com/lists/zeroq/weekend-box-office/json")
 
-
-
-        print(new_on_stremio)
         context = {
             'movie_lists': [
                 {"title": "Top Watched Movies of the Week", "movies": new_on_stremio},
@@ -169,9 +170,7 @@ class HomePageView(LoginRequiredMixin, View):
         url = f"https://api.themoviedb.org/3/find/{imdb_id}?api_key={api_key}&language=en-US&external_source=imdb_id"
         response = requests.get(url)
         data = response.json()
-        
-        print(data)
-        
+                
         if data.get('movie_results'):
             log(f"fetch_tmdb_info: Found TMDB info for {imdb_id}", GREEN)
             return data['movie_results'][0]
@@ -187,17 +186,17 @@ class TVShowHomePageView(LoginRequiredMixin, View):
         latest_tv_shows = self.get_or_create_tv_list("Latest TV Shows", "https://mdblist.com/lists/garycrawfordgc/latest-tv-shows/json")
         netflix_shows = self.get_or_create_tv_list("Netflix Shows", "https://mdblist.com/lists/garycrawfordgc/netflix-shows/json")
         hbo_shows = self.get_or_create_tv_list("HBO Shows", "https://mdblist.com/lists/garycrawfordgc/hbo-shows/json")
+        imdb_100k_votes = self.get_or_create_tv_list("IMDB 7.0+ Trakt 70%+", "https://mdblist.com/lists/superash/tv-shows-imdb-7-trakt-70/json")
 
         context = {
             'tv_show_lists': [
                 {"title": "Latest TV Shows", "tv_shows": latest_tv_shows},
                 {"title": "Netflix Shows", "tv_shows": netflix_shows},
-                {"title": "HBO Shows", "tv_shows": hbo_shows}
+                {"title": "HBO Shows", "tv_shows": hbo_shows},
+                {"title": "IMDB Most Votes", "tv_shows": imdb_100k_votes}
             ]
         }
-        
-        print(context)
-        
+                
         log("TVShowHomePageView: Rendering TV show homepage with context", GREEN)
         return render(request, 'tv_shows_homepage.html', context)
 
@@ -233,15 +232,12 @@ class TVShowHomePageView(LoginRequiredMixin, View):
     @transaction.atomic
     def fetch_and_process_tv_data(self, streaming_list):
         log(f"fetch_and_process_tv_data: Starting for '{streaming_list.name}'", BLUE)
-        
-        print(streaming_list.url)
-        
+                
         
         response = requests.get(streaming_list.url)
                 
         mdblist_data = response.json()
         
-        #limit the mdblist_data to 10 items
         mdblist_data = mdblist_data[:30]
         
         current_tv_shows = set(streaming_list.tv_shows.values_list('imdb_id', flat=True))
@@ -252,45 +248,49 @@ class TVShowHomePageView(LoginRequiredMixin, View):
                 log(f"fetch_and_process_tv_data: Processing TV show {item.get('title')}", CYAN)
                 tmdb_info = self.fetch_tmdb_tv_info(item.get('id'))
                 if tmdb_info:
+                    # Check if 'animation' is in the genres
+                    genres = [genre['name'].lower() for genre in tmdb_info.get('genres', [])]
+                    if 'animation' in genres:
+                        log(f"fetch_and_process_tv_data: Skipping animated show {item.get('title')}", YELLOW)
+                        continue
+
                     tv_show_data = {
                         'imdb_id': item.get('imdb_id'),
                         'title': item['title'],
                         'first_air_date': item.get('release_date'),
                     }
                     
-                    print(tmdb_info.get('poster_path'))
+                    tv_show_data.update({
+                        'tmdb_id':item.get('id'),
+                        'overview': tmdb_info.get('overview'),
+                        'poster_path': tmdb_info.get('poster_path'),
+                        'backdrop_path': tmdb_info.get('backdrop_path'),
+                        'vote_average': tmdb_info.get('vote_average'),
+                        'vote_count': tmdb_info.get('vote_count'),
+                        'popularity': tmdb_info.get('popularity')
+                    })
                     
-                    if tmdb_info:
-                        tv_show_data.update({
-                            'tmdb_id':item.get('id'),
-                            'overview': tmdb_info.get('overview'),
-                            'poster_path': tmdb_info.get('poster_path'),
-                            'backdrop_path': tmdb_info.get('backdrop_path'),
-                            'vote_average': tmdb_info.get('vote_average'),
-                            'vote_count': tmdb_info.get('vote_count'),
-                            'popularity': tmdb_info.get('popularity')
-                        })
-                try:
-                    tv_show, created = TVShow.objects.update_or_create(
-                        tmdb_id=item.get('id'),
-                        defaults=tv_show_data
-                    )
-                    TVShowStreamingListShow.objects.update_or_create(
-                    streaming_list=streaming_list,
-                    tv_show=tv_show,
-                        defaults={'position': position}
-                    )
-                    log(f"fetch_and_process_tv_data: {'Created' if created else 'Updated'} TV show {item.get('imdb_id')}", GREEN)
-                except Exception as e:
-                    log(f"fetch_and_process_tv_data: Error creating TV show {item.get('title')}: {e}", RED)
+                    try:
+                        tv_show, created = TVShow.objects.update_or_create(
+                            tmdb_id=item.get('id'),
+                            defaults=tv_show_data
+                        )
+                        TVShowStreamingListShow.objects.update_or_create(
+                            streaming_list=streaming_list,
+                            tv_show=tv_show,
+                            defaults={'position': position}
+                        )
+                        log(f"fetch_and_process_tv_data: {'Created' if created else 'Updated'} TV show {item.get('imdb_id')}", GREEN)
+                    except Exception as e:
+                        log(f"fetch_and_process_tv_data: Error creating TV show {item.get('title')}: {e}", RED)
 
-                    tv_show = TVShow.objects.get(tmdb_id=item.get('id'))
+                        tv_show = TVShow.objects.get(tmdb_id=item.get('id'))
 
-                    TVShowStreamingListShow.objects.update_or_create(
-                        streaming_list=streaming_list,
-                        tv_show=tv_show,
-                        defaults={'position': position}
-                    )
+                        TVShowStreamingListShow.objects.update_or_create(
+                            streaming_list=streaming_list,
+                            tv_show=tv_show,
+                            defaults={'position': position}
+                        )
 
         # # Remove TV shows that are no longer in the list
         # tv_shows_to_remove = current_tv_shows - new_tv_shows
@@ -329,7 +329,6 @@ class MovieDetailView(LoginRequiredMixin, View):
         log(f"MovieDetailView: Fetching movie details from TMDB for ID: {movie_id}", BLUE)
         response = requests.get(url)
         movie_data = response.json()
-        print(movie_data)
         context = {
             'movie': movie_data,
             'cast': movie_data.get('credits', {}).get('cast', [])[:5],  # Get first 5 cast members
@@ -443,16 +442,13 @@ class TVShowDetailView(LoginRequiredMixin, View):
         log(f"TVShowDetailView: Fetching TV show details from TMDB for ID: {show_id}", BLUE)
         response = requests.get(url)
         show_data = response.json()
-        
-        #print the show data and make it visible in the terminal in a readable format
-        print(json.dumps(show_data, indent=4))
-        
+                
         # Fetch or create TVShow object
         tv_show, created = TVShow.objects.update_or_create(
             tmdb_id=show_data['id'],
             defaults={
                 'title': show_data['name'],
-                'imdb_id': show_data['external_ids']['imdb_id'],
+                'imdb_id': show_data['external_ids'].get('imdb_id', None),
                 'overview': show_data['overview'],
                 'poster_path': show_data['poster_path'],
                 'backdrop_path': show_data['backdrop_path'],
@@ -493,14 +489,24 @@ class TVShowDetailView(LoginRequiredMixin, View):
                         'air_date': episode_data['air_date'],
                     }
                 )
+                episode_watched = TVShowWatchHistory.objects.filter(user=request.user, episode=episode).exists()
+
+                if episode_watched:
+                    print(f"{GREEN}Episode {episode_data} has been watched{RESET}")
+                    episode_data['watched'] = True
+                else:
+                    print(f"{RED}Episode {episode_data} has not been watched{RESET}")
+
                 episodes.append(episode_data)
+
+            print(episodes)
             
             season_data['episodes'] = episodes
             seasons_with_episodes.append(season_data)
-
+            
         context = {
             'show': show_data,
-            'cast': show_data.get('credits', {}).get('cast', [])[:5],  # Get first 5 cast members
+            'cast': show_data.get('credits', {}).get('cast', [])[:5],
             'seasons': seasons_with_episodes,
         }
 
@@ -517,45 +523,88 @@ class TVShowDetailView(LoginRequiredMixin, View):
             return JsonResponse({'error': 'Invalid season or episode'}, status=400)
 
 
+
+
 class TVShowStreamView(LoginRequiredMixin, View):
     def get(self, request, show_id, season, episode, imdb_id):
-        # Use the parameters directly from the URL
         season_number = season
         episode_number = episode
 
-        # Construct URLs based on show_id, season, and episode
-        vidsrc_url = f"https://vidsrc.cc/v2/embed/tv/{show_id}/{season_number}/{episode_number}"
-        vidsrc_url_2 = f"https://vidsrc.xyz/embed/tv/{show_id}/{season_number}/{episode_number}"
-        multiembed_url = f"https://multiembed.mov/?video_id={show_id}&tmdb=1&s={season_number}&e={episode_number}"
-        warezcdn_url = f"https://embed.warezcdn.com/serie/{imdb_id}/{season_number}/{episode_number}"
-        
-        print(warezcdn_url)
+        # Define URLs
+        urls = {
+            'vidsrc': f"https://vidsrc.cc/v2/embed/tv/{show_id}/{season_number}/{episode_number}",
+            'vidsrc_2': f"https://vidsrc.xyz/embed/tv/{show_id}/{season_number}/{episode_number}",
+            'multiembed': f"https://multiembed.mov/?video_id={show_id}&tmdb=1&s={season_number}&e={episode_number}",
+            'warezcdn': f"https://embed.warezcdn.com/serie/{imdb_id}/{season_number}/{episode_number}",
+            'vidsrc_pro': f"https://vidsrc.pro/embed/tv/{show_id}/{season_number}/{episode_number}",
+            'moviee': f"https://moviee.tv/embed/tv/{show_id}?season={season_number}&episode={episode_number}"
+        }
+
+        # Check availability of each source
+        available_sources = {}
+        for source, url in urls.items():
+            print(f"{BLUE}Checking availability of {source} at {url}{RESET}")
+            if self.check_source_availability(url):
+                available_sources[f'{source}_url'] = url
+                print(f"{GREEN}{source} is available at {url}{RESET}")
+            else:
+                available_sources[f'{source}_url'] = url
+                print(f"{RED}{source} is not available at {url}{RESET}")
+                
+        print(f"{GREEN}Available sources: {available_sources}{RESET}")
 
         api_key = "2480c2206d4661b89bf222cbc9c7f5ea"
         episode_url = f"https://api.themoviedb.org/3/tv/{show_id}/season/{season_number}/episode/{episode_number}?api_key={api_key}&language=en-US"
         episode_response = requests.get(episode_url)
         episode_data = episode_response.json()
+        
+        print(json.dumps(episode_data, indent=4))
 
-        # Record the watch history
+        # Record watch history
+        self.record_watch_history(show_id, season_number, episode_number)
+
+        context = {
+            **available_sources,
+            'episode': episode_data,
+        }
+        log("TVShowStreamView: Rendering TV show stream template", GREEN)
+        return render(request, 'tv_stream.html', context)
+
+    def check_source_availability(self, url):
+        
+        
+        error_phrases = ["Video not found", "404", "File not found"]
+        error_words = [" Erro ", " Error "]
+        
+        try:
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.text, 'html.parser')
+                if soup.find('video') or soup.find('iframe'):
+                    return True
+
+                if any(phrase in response.text for phrase in error_phrases) or \
+                any(word in f" {response.text.lower()} " for word in error_words) or \
+                response.text.lower().startswith(("erro ", "error ")) or \
+                response.text.lower().endswith((" erro", " error")):
+                    print(f"{RED}Source {url} is not available{RESET}")
+                    return False
+
+            return True
+        except requests.RequestException:
+            return False
+
+    def record_watch_history(self, show_id, season_number, episode_number):
         try:
             tv_show = TVShow.objects.get(tmdb_id=show_id)
             season = Season.objects.get(tv_show=tv_show, season_number=season_number)
             episode = Episode.objects.get(season=season, episode_number=episode_number)
             TVShowWatchHistory.objects.create(
-                user=request.user,
+                user=self.request.user,
                 episode=episode,
                 watched_at=timezone.now()
             )
-            log(f"TVShowStreamView: Recorded watch history for user {request.user.username} and episode {episode}", GREEN)
+            
+            log(f"TVShowStreamView: Recorded watch history for user {self.request.user.username} and episode {episode}", GREEN)
         except (TVShow.DoesNotExist, Season.DoesNotExist, Episode.DoesNotExist):
             log(f"TVShowStreamView: TV show, season, or episode does not exist.", YELLOW)
-
-        context = {
-            'vidsrc_url': vidsrc_url,
-            'vidsrc_url_2': vidsrc_url_2,
-            'multiembed_url': multiembed_url,
-            'warezcdn_url': warezcdn_url,
-            'episode': episode_data,
-        }
-        log("TVShowStreamView: Rendering TV show stream template", GREEN)
-        return render(request, 'tv_stream.html', context)

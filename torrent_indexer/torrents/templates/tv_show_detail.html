@@ -263,6 +263,13 @@
             flex-direction: column;
             height: 150px; /* Set a fixed height */
             justify-content: space-between;
+            position: relative;
+            border-left: 4px solid transparent;
+            transition: border-color 0.3s ease;
+        }
+
+        .episode-item.watched {
+            border-left-color: #64ffda;
         }
 
         .episode-item:hover {
@@ -294,6 +301,11 @@
             cursor: pointer;
             transition: all 0.3s ease;
             margin-top: auto;
+        }
+
+        .watch-button.watched {
+            background-color: #64ffda;
+            color: #0a192f;
         }
 
         .watch-button:hover {
@@ -345,6 +357,14 @@
         .episode-grid::-webkit-scrollbar-thumb {
             background-color: #64ffda;
             border-radius: 4px;
+        }
+
+        .watched-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #64ffda;
+            font-size: 16px;
         }
 
         @media (max-width: 768px) {
@@ -472,9 +492,9 @@
                 {% for season in show.seasons %}
                     if ({{ season.season_number }} == seasonNumber) {
                         {% for episode in season.episodes %}
-                            (function() {  // Use an IIFE to create a new scope
+                            (function() {
                                 const episodeItem = document.createElement('div');
-                                episodeItem.className = 'episode-item';
+                                episodeItem.className = 'episode-item{% if episode.watched %} watched{% endif %}';
                                 episodeItem.innerHTML = `
                                     <h4 class="episode-title">{{ episode.name }}</h4>
                                     <p class="episode-number">Episode {{ episode.episode_number }}</p>
@@ -483,8 +503,13 @@
                                         <input type="hidden" name="season" value="{{ season.season_number }}">
                                         <input type="hidden" name="episode" value="{{ episode.episode_number }}">
                                         <input type="hidden" name="imdb_id" value="{{ show.external_ids.imdb_id }}">
-                                        <button type="submit" class="watch-button">Watch</button>
+                                        <button type="submit" class="watch-button{% if episode.watched %} watched{% endif %}">
+                                            {% if episode.watched %}Rewatch{% else %}Watch{% endif %}
+                                        </button>
                                     </form>
+                                    {% if episode.watched %}
+                                        <span class="watched-indicator">✓</span>
+                                    {% endif %}
                                 `;
                                 episodeGrid.appendChild(episodeItem);
                             })();

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ show.name }} - S{{ season }}E{{ episode }} - Watch Now - Flix 🏴‍☠️</title>
+    <title>{{ episode.show_name }} - S{{ episode.season_number }}E{{ episode.episode_number }} - Watch Now - Flix 🏴‍☠️</title>
     <link href="https://vjs.zencdn.net/7.20.3/video-js.min.css" rel="stylesheet" />
     <style>
         :root {
@@ -276,37 +276,34 @@
                     scrolling="no" 
                     frameborder="0" 
                     marginwidth="0" 
-                    src="{{ warezcdn_url }}"
-                    allowfullscreen = "true"
+                    src="{{ moviee_url|default:'' }}"
+                    allowfullscreen="true"
                     allow="autoplay; picture-in-picture"
                     style="width: 100%; height: 100%; overflow: hidden;" 
                     referrerpolicy="no-referrer-when-downgrade"
                     allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""
-                    >
+                >
                 </iframe>
             </div>
         </div>
         <div class="button-container">
-            <button id="vidsrc-button" class="source-button active">Source 1</button>
-            <button id="vidsrc-xyz-button" class="source-button">Source 2</button>
-            <button id="multiembed-button" class="source-button">Source 3</button>
-            <button id="warezcdn-button" class="source-button">Source 4</button>
+            {% if vidsrc_url %}<button id="vidsrc-button" class="source-button{% if forloop.first %} active{% endif %}">Source 1</button>{% endif %}
+            {% if vidsrc_2_url %}<button id="vidsrc-xyz-button" class="source-button">Source 2</button>{% endif %}
+            {% if multiembed_url %}<button id="multiembed-button" class="source-button">Source 3</button>{% endif %}
+            {% if warezcdn_url %}<button id="warezcdn-button" class="source-button">Source 4</button>{% endif %}
+            {% if vidsrc_pro_url %}<button id="vidsrc-pro-button" class="source-button">Source 5</button>{% endif %}
+            {% if moviee_url %}<button id="moviee-button" class="source-button">Source 6</button>{% endif %}
         </div>
         
         <div class="show-info">
-            <h1 class="show-title">{{ show.name }}</h1>
+            <h1 class="show-title">{{ episode.show_name }}</h1>
             <div class="show-meta">
-                <span>{{ show.first_air_date|slice:":4" }}</span>
-                <span>
-                    {% for genre in show.genres %}
-                        {{ genre.name }}{% if not forloop.last %}, {% endif %}
-                    {% endfor %}
-                </span>
-                <span class="rating">⭐ {{ show.vote_average|floatformat:1 }}</span>
+                <span>{{ episode.air_date|slice:":4" }}</span>
+                <span class="rating">⭐ {{ episode.vote_average|floatformat:1 }}</span>
             </div>
             <div class="episode-info">
                 <h2 class="episode-title">{{ episode.name }}</h2>
-                <p class="episode-number">Season {{ season }} Episode {{ episode.episode_number }}</p>
+                <p class="episode-number">Season {{ episode.season_number }} Episode {{ episode.episode_number }}</p>
                 <p class="episode-description">{{ episode.overview }}</p>
             </div>
         </div>
@@ -328,10 +325,12 @@
 
         // Source button click events
         const sources = {
-            'vidsrc-button': "{{ vidsrc_url }}",
-            'vidsrc-xyz-button': "{{ vidsrc_url_2 }}",
-            'multiembed-button': "{{ multiembed_url }}",
-            'warezcdn-button': "{{ warezcdn_url }}",
+            {% if vidsrc_url %}'vidsrc-button': "{{ vidsrc_url }}",{% endif %}
+            {% if vidsrc_2_url %}'vidsrc-xyz-button': "{{ vidsrc_2_url }}",{% endif %}
+            {% if multiembed_url %}'multiembed-button': "{{ multiembed_url }}",{% endif %}
+            {% if warezcdn_url %}'warezcdn-button': "{{ warezcdn_url }}",{% endif %}
+            {% if vidsrc_pro_url %}'vidsrc-pro-button': "{{ vidsrc_pro_url }}",{% endif %}
+            {% if moviee_url %}'moviee-button': "{{ moviee_url }}",{% endif %}
         };
     
         sourceButtons.forEach(button => {
