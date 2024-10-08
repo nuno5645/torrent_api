@@ -3,6 +3,9 @@ import json
 import requests
 from datetime import datetime, timedelta
 from urllib.parse import unquote
+from django.template.defaulttags import register
+
+register.filter('class_name', lambda value: value.__class__.__name__)
 
 # Django imports
 from django.conf import settings
@@ -407,9 +410,18 @@ class VideoStreamView(LoginRequiredMixin, View):
 
 class WatchHistoryView(LoginRequiredMixin, View):
     def get(self, request):
-        watch_history = WatchHistory.objects.filter(user=request.user).order_by('-watched_at')
+        movie_history = WatchHistory.objects.filter(user=request.user).order_by('-watched_at')
+        tv_history = TVShowWatchHistory.objects.filter(user=request.user).order_by('-watched_at')
+        
+        # Combine and sort the two querysets
+        combined_history = sorted(
+            list(movie_history) + list(tv_history),
+            key=lambda x: x.watched_at,
+            reverse=True
+        )
+        
         context = {
-            'watch_history': watch_history
+            'watch_history': combined_history
         }
         return render(request, 'watch_history.html', context)
 
@@ -539,7 +551,8 @@ class TVShowStreamView(LoginRequiredMixin, View):
             'multiembed': f"https://multiembed.mov/?video_id={show_id}&tmdb=1&s={season_number}&e={episode_number}",
             'warezcdn': f"https://embed.warezcdn.com/serie/{imdb_id}/{season_number}/{episode_number}",
             'vidsrc_pro': f"https://vidsrc.pro/embed/tv/{show_id}/{season_number}/{episode_number}",
-            'moviee': f"https://moviee.tv/embed/tv/{show_id}?season={season_number}&episode={episode_number}"
+            'moviee': f"https://moviee.tv/embed/tv/{show_id}?season={season_number}&episode={episode_number}",
+            'embedflix': f"https://www.embedflix.win/embed/tv/{show_id}?season={season_number}&episode={episode_number}"
         }
 
         # Check availability of each source
@@ -565,9 +578,13 @@ class TVShowStreamView(LoginRequiredMixin, View):
         # Record watch history
         self.record_watch_history(show_id, season_number, episode_number)
 
+        next_episode = self.get_next_episode(show_id, season_number, episode_number, imdb_id)
+
         context = {
             **available_sources,
             'episode': episode_data,
+            'next_episode': next_episode,
+            'imdb_id': imdb_id,  # Add this line
         }
         log("TVShowStreamView: Rendering TV show stream template", GREEN)
         return render(request, 'tv_stream.html', context)
@@ -610,3 +627,38 @@ class TVShowStreamView(LoginRequiredMixin, View):
             log(f"TVShowStreamView: Recorded watch history for user {self.request.user.username} and episode {episode}", GREEN)
         except (TVShow.DoesNotExist, Season.DoesNotExist, Episode.DoesNotExist):
             log(f"TVShowStreamView: TV show, season, or episode does not exist.", YELLOW)
+            
+    def get_next_episode(self, show_id, season_number, episode_number, imdb_id):
+        try:
+            tv_show = TVShow.objects.get(tmdb_id=show_id)
+            current_season = Season.objects.get(tv_show=tv_show, season_number=season_number)
+            current_episode = Episode.objects.get(season=current_season, episode_number=episode_number)
+            
+            # Try to get the next episode in the same season
+            next_episode = Episode.objects.filter(season=current_season, episode_number__gt=episode_number).order_by('episode_number').first()
+            
+            if next_episode:
+                return {
+                    'show_id': show_id,
+                    'season': season_number,
+                    'episode': next_episode.episode_number,
+                    'imdb_id': imdb_id
+                }
+            
+            # If there's no next episode in the current season, try the next season
+            next_season = Season.objects.filter(tv_show=tv_show, season_number__gt=season_number).order_by('season_number').first()
+            
+            if next_season:
+                first_episode_next_season = Episode.objects.filter(season=next_season).order_by('episode_number').first()
+                if first_episode_next_season:
+                    return {
+                        'show_id': show_id,
+                        'season': next_season.season_number,
+                        'episode': first_episode_next_season.episode_number,
+                        'imdb_id': imdb_id
+                    }
+            
+            # If there's no next episode or season, return None
+            return None
+        except (TVShow.DoesNotExist, Season.DoesNotExist, Episode.DoesNotExist):
+            return None

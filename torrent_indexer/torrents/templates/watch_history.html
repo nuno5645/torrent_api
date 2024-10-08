@@ -199,12 +199,19 @@
         {% if watch_history %}
             {% for record in watch_history %}
                 <div class="history-item">
-                    <a href="{% url 'movie_detail' record.movie.tmdb_id %}">{{ record.movie.title }}</a>
-                    <span>{{ record.watched_at|date:"F j, Y, g:i a" }}</span>
+                    {% if record|class_name == 'WatchHistory' %}
+                        <a href="{% url 'movie_detail' record.movie.tmdb_id %}">{{ record.movie.title }}</a>
+                        <span>Movie - {{ record.watched_at|date:"F j, Y, g:i a" }}</span>
+                    {% elif record|class_name == 'TVShowWatchHistory' %}
+                        <a href="{% url 'tv_show_detail' record.episode.season.tv_show.tmdb_id %}">
+                            {{ record.episode.season.tv_show.title }} - S{{ record.episode.season.season_number }}E{{ record.episode.episode_number }}
+                        </a>
+                        <span>TV Show - {{ record.watched_at|date:"F j, Y, g:i a" }}</span>
+                    {% endif %}
                 </div>
             {% endfor %}
         {% else %}
-            <p style="text-align: center; color: var(--secondary-text);">You haven't watched any movies yet.</p>
+            <p style="text-align: center; color: var(--secondary-text);">You haven't watched any movies or TV shows yet.</p>
         {% endif %}
     </div>
 
