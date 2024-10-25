@@ -19,7 +19,7 @@
             box-sizing: border-box;
         }
 
-        body {
+        body {å
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--primary-bg);
             color: var(--primary-text);
@@ -55,6 +55,28 @@
             color: var(--secondary-text);
             text-decoration: none;
             transition: color 0.3s ease;
+            position: relative;
+            padding: 5px 0;
+            font-size: 16px;
+        }
+    
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--accent-color);
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.3s ease;
+        }
+    
+        .nav-link:hover::after,
+        .nav-link.active::after {
+            transform: scaleX(1);
+            transform-origin: left;
         }
     
         .nav-link:hover,
@@ -70,6 +92,7 @@
 
         .user-profile span {
             margin-right: 10px;
+            font-size: 16px;
         }
 
         .user-profile .nav-link {
@@ -298,6 +321,7 @@
             font-weight: bold;
         }
 
+
         .slider-control {
             position: absolute;
             top: 50%;
@@ -332,7 +356,7 @@
         .logo {
             font-size: 24px;
             font-weight: bold;
-            color: #64ffda;
+            color: var(--accent-color);
         }
 
         @media (max-width: 768px) {

@@ -1,0 +1,31 @@
+{% extends 'base_homepage.html' %}
+
+{% block title %}Flix 🏴‍☠️ - TV Shows{% endblock %}
+
+{% block content_type %}TV shows{% endblock %}
+{% block content_type_aria %}TV shows{% endblock %}
+
+{% block content_rows %}
+    {% for tv_show_list in tv_show_lists %}
+        <div class="content-row">
+            <div class="row-header">
+                <h2 class="row-title">{{ tv_show_list.title }}</h2>
+                <a href="#" class="see-all">See All</a>
+            </div>
+            <div class="content-slider">
+                {% for tv_show in tv_show_list.tv_shows %}
+                    <div class="content-card" onclick="window.location.href='/tv/{{ tv_show.tmdb_id }}'">
+                        <img class="content-poster" src="https://image.tmdb.org/t/p/w200{{ tv_show.poster_path|default:'' }}" alt="{{ tv_show.title }}">
+                        <div class="content-info">
+                            <div class="content-title">{{ tv_show.title }}</div>
+                            <div class="content-genre">{{ tv_show.first_air_date|date:"Y" }}</div>
+                        </div>
+                        <div class="rating">{{ tv_show.vote_average|floatformat:1 }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+            <button class="slider-control left" onclick="slide(this, -1)">❮</button>
+            <button class="slider-control right" onclick="slide(this, 1)">❯</button>
+        </div>
+    {% endfor %}
+{% endblock %}

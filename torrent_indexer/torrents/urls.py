@@ -1,5 +1,5 @@
 # Updated urls.py
-from django.urls import path
+from django.urls import path, re_path
 from . import views
 
 urlpatterns = [
@@ -11,6 +11,6 @@ urlpatterns = [
     path('watch_history/', views.WatchHistoryView.as_view(), name='watch_history'),
     path('tv/search/', views.TVShowSearchView.as_view(), name='tv_search'),
     path('tv/<int:show_id>/', views.TVShowDetailView.as_view(), name='tv_show_detail'),
-    path('tv/stream/<int:show_id>/<int:season>/<int:episode>/<str:imdb_id>/', views.TVShowStreamView.as_view(), name='tv_stream'),
+    re_path(r'^tv/stream/(?P<show_id>[0-9]+)/(?P<season>[0-9]+)/(?P<episode>[0-9]+)(?:/(?P<imdb_id>[^/]+))?/$', views.TVShowStreamView.as_view(), name='tv_stream'),
     path('tv-shows/', views.TVShowHomePageView.as_view(), name='tv_show_homepage'),
 ]

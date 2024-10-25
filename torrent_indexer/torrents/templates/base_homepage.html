@@ -1,0 +1,365 @@
+{% extends 'base.html' %}
+
+{% block base_style %}
+    .navbar {
+        background-color: rgba(10, 25, 47, 0.8);
+        backdrop-filter: blur(10px);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 15px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 1000;
+        transition: all 0.3s ease;
+    }
+
+    .navbar.scrolled {
+        background-color: rgba(10, 25, 47, 0.95);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .logo {
+        font-size: 24px;
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 20px;
+    }
+
+    .nav-link {
+        color: var(--text-color);
+        text-decoration: none;
+        font-size: 16px;
+        transition: color 0.3s ease;
+    }
+
+    .nav-link:hover {
+        color: var(--primary-color);
+    }
+
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .user-profile span {
+        margin-right: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .navbar {
+            flex-direction: column;
+            padding: 10px;
+        }
+
+        .logo {
+            margin-bottom: 10px;
+        }
+
+        .nav-links {
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .user-profile {
+            justify-content: center;
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .navbar {
+            padding: 8px 10px;
+        }
+
+        .logo {
+            font-size: 20px;
+        }
+
+        .nav-links {
+            gap: 10px;
+        }
+
+        .nav-link {
+            font-size: 14px;
+        }
+    }
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .container {
+        width: 100%;
+        max-width: 150%;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+    }
+
+    .search-container {
+        position: relative;
+        width: 100%;
+        max-width: 300px;
+        margin: 10px 0;
+    }
+
+    .search-input {
+        background-color: rgba(100, 255, 218, 0.1);
+        border: 2px solid var(--primary-color);
+        border-radius: 25px;
+        padding: 10px 40px 10px 20px;
+        font-size: 16px;
+        color: var(--highlight-color);
+        width: 100%;
+        transition: all 0.3s ease;
+    }
+
+    .search-input:focus {
+        outline: none;
+        box-shadow: 0 0 10px rgba(100, 255, 218, 0.5);
+    }
+
+    .search-button {
+        background: none;
+        border: none;
+        color: var(--primary-color);
+        font-size: 20px;
+        cursor: pointer;
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: var(--background-color);
+        border-radius: 10px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        max-height: 400px;
+        overflow-y: auto;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(10px);
+        transition: all 0.3s ease;
+    }
+
+    .search-results.active {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .ad-warning {
+        background-color: rgba(255, 255, 0, 0.1);
+        border: 1px solid rgba(255, 255, 0, 0.3);
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 20px;
+        text-align: center;
+        width: 100%;
+    }
+
+    .ad-warning p {
+        color: var(--primary-color);
+        font-size: 14px;
+        margin: 0;
+    }
+
+    .ad-warning a {
+        color: var(--primary-color);
+        text-decoration: underline;
+    }
+
+    .ad-warning a:hover {
+        color: var(--highlight-color);
+    }
+
+    .content-row {
+        margin-bottom: 40px;
+    }
+
+    .row-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .row-title {
+        font-size: 24px;
+        color: var(--highlight-color);
+    }
+
+    .see-all {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-size: 16px;
+    }
+
+    .content-slider {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        gap: 20px;
+        padding-bottom: 20px;
+    }
+
+    .content-card {
+        flex: 0 0 auto;
+        width: 200px;
+        scroll-snap-align: start;
+        margin-bottom: 20px;
+    }
+
+    .rating {
+        font-size: 16px;
+        color: var(--highlight-color);
+    }
+
+    .slider-control {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 24px;
+        color: var(--primary-color);
+        cursor: pointer;
+    }
+
+    .scroll-to-top {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: var(--primary-color);
+        color: var(--background-color);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .scroll-to-top.visible {
+        opacity: 1;
+    }
+
+    @media (max-width: 768px) {
+        .row-title {
+            font-size: 20px;
+        }
+
+        .content-card {
+            width: 150px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .search-container {
+            max-width: 100%;
+        }
+
+        .content-card {
+            width: 120px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="ad-warning">
+        <p>⚠️ Warning: Some content may contain ads. For a better experience, we recommend using <a href="https://chromewebstore.google.com/detail/ublock-origin/cjpalhdlnbpafiamejdnhcphjbkeiagm" target="_blank" rel="noopener noreferrer">uBlock Origin</a> or <a href="https://chromewebstore.google.com/detail/bkkbcggnhapdmkeljlodobbkopceiache/privacy" target="_blank" rel="noopener noreferrer">Pop Up Blocker</a> on Google Chrome.</p>
+    </div>
+    <div class="header">
+        <h1>Welcome to Flix 🏴‍☠️</h1>
+        <div class="search-container">
+            <input type="text" id="search-input" class="search-input" placeholder="Search {% block content_type %}content{% endblock %}..." aria-label="Search {% block content_type_aria %}content{% endblock %}">
+            <button id="search-button" class="search-button" aria-label="Search">🔍</button>
+            <div id="search-results" class="search-results"></div>
+        </div>
+    </div>
+    <div id="contentRows">
+        {% block content_rows %}{% endblock %}
+    </div>
+</div>
+<div class="scroll-to-top">↑</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function slide(button, direction) {
+        const slider = button.parentElement.querySelector('.content-slider');
+        const sliderWidth = slider.clientWidth;
+        const scrollAmount = sliderWidth * 0.8 * direction;
+        slider.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('search-input');
+        const searchButton = document.getElementById('search-button');
+        const searchResults = document.getElementById('search-results');
+        let searchTimeout;
+
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(performSearch, 300);
+        });
+
+        searchInput.addEventListener('focus', function() {
+            searchResults.classList.add('active');
+        });
+
+        searchButton.addEventListener('click', performSearch);
+
+        document.addEventListener('click', function(event) {
+            if (!searchInput.contains(event.target) && !searchResults.contains(event.target)) {
+                searchResults.classList.remove('active');
+            }
+        });
+
+        function performSearch() {
+            // Add your search logic here
+        }
+
+        // Scroll to top functionality
+        const scrollToTopButton = document.querySelector('.scroll-to-top');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                scrollToTopButton.classList.add('visible');
+            } else {
+                scrollToTopButton.classList.remove('visible');
+            }
+        });
+        scrollToTopButton.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    });
+</script>
+{% endblock %}

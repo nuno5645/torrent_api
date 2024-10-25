@@ -60,26 +60,11 @@
         .nav-link {
             color: var(--text-color);
             text-decoration: none;
+            font-size: 16px;
             transition: color 0.3s ease;
-            position: relative;
         }
 
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background-color: var(--primary-color);
-            transition: width 0.3s ease;
-        }
-
-        .nav-link:hover::after, .nav-link.active::after {
-            width: 100%;
-        }
-
-        .nav-link:hover, .nav-link.active {
+        .nav-link:hover {
             color: var(--primary-color);
         }
 
@@ -87,18 +72,10 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            cursor: pointer;
         }
 
-        .user-profile img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            transition: transform 0.3s ease;
-        }
-
-        .user-profile:hover img {
-            transform: scale(1.1);
+        .user-profile span {
+            margin-right: 10px;
         }
 
         main {
@@ -254,23 +231,71 @@
             transition: all 0.3s ease;
             backdrop-filter: blur(5px);
             box-shadow: 0 0 15px rgba(100, 255, 218, 0.2);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .next-episode-button::before,
+        .next-episode-button::after {
+            content: '';
+            position: absolute;
+            background-color: var(--primary-color);
+            transition: all 0.3s ease;
+        }
+
+        .next-episode-button::before {
+            width: 20px;
+            height: 2px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .next-episode-button::after {
+            width: 10px;
+            height: 10px;
+            top: 50%;
+            right: 22px;
+            border-top: 2px solid var(--primary-color);
+            border-right: 2px solid var(--primary-color);
+            transform: translateY(-50%) rotate(45deg);
         }
 
         .next-episode-button:hover {
             background-color: var(--primary-color);
-            color: var(--background-color);
             transform: scale(1.1);
             box-shadow: 0 0 20px rgba(100, 255, 218, 0.4);
+        }
+
+        .next-episode-button:hover::before,
+        .next-episode-button:hover::after {
+            background-color: var(--background-color);
+        }
+
+        .next-episode-button:hover::after {
+            border-color: var(--background-color);
         }
 
         .next-episode-button:active {
             transform: scale(0.95);
         }
 
-        .next-episode-button::after {
-            content: '→';
-            font-size: 28px;
-            font-weight: bold;
+        @keyframes arrowMove {
+            0%, 100% {
+                transform: translateX(0) rotate(45deg);
+            }
+            50% {
+                transform: translateX(5px) rotate(45deg);
+            }
+        }
+
+        @keyframes lineExtend {
+            0%, 100% {
+                width: 20px;
+            }
+            50% {
+                width: 25px;
+            }
         }
 
         @keyframes pulse {
@@ -283,6 +308,14 @@
             100% {
                 box-shadow: 0 0 0 0 rgba(100, 255, 218, 0);
             }
+        }
+
+        .next-episode-button:hover::before {
+            animation: lineExtend 1s infinite;
+        }
+
+        .next-episode-button:hover::after {
+            animation: arrowMove 1s infinite;
         }
 
         .next-episode-button:hover {
@@ -302,21 +335,226 @@
         }
 
         @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                padding: 10px;
+            }
+
+            .logo {
+                margin-bottom: 10px;
+            }
+
+            .nav-links {
+                flex-direction: row;
+                justify-content: center;
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            .user-profile {
+                flex-direction: row;
+                justify-content: center;
+                width: 100%;
+            }
+
+            main {
+                padding-top: 150px;
+            }
+
+            .video-container {
+                max-width: 100%;
+            }
+
+            .button-container {
+                flex-direction: row;
+                align-items: center;
+            }
+
+            .source-button {
+                width: auto;
+                max-width: none;
+                margin-bottom: 10px;
+            }
+
             .show-title {
-                font-size: 28px;
+                font-size: 24px;
+                text-align: center;
             }
 
             .show-meta {
-                flex-direction: column;
-                gap: 10px;
+                justify-content: center;
+                text-align: center;
+            }
+
+            .episode-info {
+                text-align: center;
             }
 
             .episode-title {
                 font-size: 20px;
             }
 
-            .episode-number {
+            .episode-number, .episode-description {
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 8px 10px;
+            }
+
+            .logo {
+                font-size: 20px;
+            }
+
+            .nav-links {
+                gap: 10px;
+            }
+
+            .nav-link {
+                font-size: 14px;
+            }
+
+            .user-profile {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            main {
+                padding-top: 180px;
+            }
+
+            .show-info {
+                padding: 0 10px;
+            }
+
+            .episode-info {
+                padding: 10px;
+            }
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: var(--background-color);
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid var(--primary-color);
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+        }
+
+        .close {
+            color: var(--primary-color);
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: var(--highlight-color);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #modalSourceButtons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .next-episode-container {
+                display: none;
+            }
+
+            .button-container {
+                display: none;
+            }
+
+            #openSourcesModal {
+                display: block;
+                width: 90%;
+                max-width: 200px;
+                margin: 20px auto;
+                padding: 10px;
+                background-color: var(--primary-color);
+                color: var(--background-color);
+                border: none;
+                border-radius: 5px;
                 font-size: 16px;
+                cursor: pointer;
+            }
+        }
+
+        .navbar {
+            background-color: rgba(10, 25, 47, 0.95);
+            backdrop-filter: blur(10px);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .nav-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .nav-right {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-link {
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--primary-color);
+        }
+
+        .user-greeting {
+            color: var(--primary-color);
+            font-size: 14px;
+        }
+
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 8px 10px;
+            }
+
+            .nav-link, .user-greeting {
+                font-size: 12px;
+            }
+
+            .nav-right {
+                gap: 10px;
             }
         }
     </style>
@@ -353,7 +591,7 @@
                         scrolling="no" 
                         frameborder="0" 
                         marginwidth="0" 
-                        src="{{ moviee_url|default:'' }}"
+                        src="{{ url_list.0|default:'' }}"
                         allowfullscreen="true"
                         allow="autoplay; picture-in-picture"
                         style="width: 100%; height: 100%; overflow: hidden;" 
@@ -371,13 +609,9 @@
         </div>
         
         <div class="button-container">
-            {% if vidsrc_url %}<button id="vidsrc-button" class="source-button{% if forloop.first %} active{% endif %}">Source 1</button>{% endif %}
-            {% if vidsrc_2_url %}<button id="vidsrc-xyz-button" class="source-button">Source 2</button>{% endif %}
-            {% if multiembed_url %}<button id="multiembed-button" class="source-button">Source 3</button>{% endif %}
-            {% if warezcdn_url %}<button id="warezcdn-button" class="source-button">Source 4</button>{% endif %}
-            {% if vidsrc_pro_url %}<button id="vidsrc-pro-button" class="source-button">Source 5</button>{% endif %}
-            {% if moviee_url %}<button id="moviee-button" class="source-button">Source 6</button>{% endif %}
-            {% if embedflix_url %}<button id="embedflix-button" class="source-button">Source 7</button>{% endif %}
+            {% for url in url_list %}
+                <button id="source-{{ forloop.counter }}-button" class="source-button{% if forloop.first %} active{% endif %}">Source {{ forloop.counter }}</button>
+            {% endfor %}
         </div>
         
         <div class="show-info">
@@ -393,6 +627,16 @@
             </div>
         </div>
     </main>
+
+    <!-- Add this modal HTML just before the closing </body> tag -->
+    <div id="sourcesModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Select Source</h2>
+            <div id="modalSourceButtons"></div>
+        </div>
+    </div>
+
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const navbar = document.querySelector('.navbar');
@@ -409,25 +653,87 @@
         });
 
         // Source button click events
-        const sources = {
-            {% if vidsrc_url %}'vidsrc-button': "{{ vidsrc_url }}",{% endif %}
-            {% if vidsrc_2_url %}'vidsrc-xyz-button': "{{ vidsrc_2_url }}",{% endif %}
-            {% if multiembed_url %}'multiembed-button': "{{ multiembed_url }}",{% endif %}
-            {% if warezcdn_url %}'warezcdn-button': "{{ warezcdn_url }}",{% endif %}
-            {% if vidsrc_pro_url %}'vidsrc-pro-button': "{{ vidsrc_pro_url }}",{% endif %}
-            {% if moviee_url %}'moviee-button': "{{ moviee_url }}",{% endif %}
-            {% if embedflix_url %}'embedflix-button': "{{ embedflix_url }}",{% endif %}
-        };
-    
-        sourceButtons.forEach(button => {
+        const sources = [
+            {% for url in url_list %}
+                "{{ url }}",
+            {% endfor %}
+        ];
+
+        sourceButtons.forEach((button, index) => {
             button.addEventListener('click', function() {
-                const url = sources[this.id];
+                const url = sources[index];
                 console.log('Selected source URL:', url);
                 videoPlayer.src = url;
                 sourceButtons.forEach(btn => btn.classList.remove('active'));
                 this.classList.add('active');
             });
         });
+
+        const modal = document.getElementById("sourcesModal");
+        const modalSourceButtons = document.getElementById("modalSourceButtons");
+        const span = document.getElementsByClassName("close")[0];
+        let openSourcesModalButton;
+
+        function createOpenSourcesModalButton() {
+            if (!openSourcesModalButton) {
+                openSourcesModalButton = document.createElement('button');
+                openSourcesModalButton.id = 'openSourcesModal';
+                openSourcesModalButton.textContent = 'Select Source';
+                document.querySelector('.video-container').after(openSourcesModalButton);
+
+                // Add click event listener to the new button
+                openSourcesModalButton.onclick = function() {
+                    modal.style.display = "block";
+                }
+            }
+        }
+
+        function populateModalSourceButtons() {
+            modalSourceButtons.innerHTML = '';
+            sourceButtons.forEach((button, index) => {
+                const newButton = button.cloneNode(true);
+                newButton.addEventListener('click', function() {
+                    const url = sources[index];
+                    videoPlayer.src = url;
+                    sourceButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    newButton.classList.add('active');
+                    modal.style.display = "none";
+                });
+                modalSourceButtons.appendChild(newButton);
+            });
+        }
+
+        function handleResize() {
+            if (window.innerWidth <= 768) {
+                createOpenSourcesModalButton();
+                populateModalSourceButtons();
+            } else {
+                if (openSourcesModalButton) {
+                    openSourcesModalButton.remove();
+                    openSourcesModalButton = null;
+                }
+            }
+        }
+
+        window.addEventListener('resize', handleResize);
+        handleResize();
+
+        if (openSourcesModalButton) {
+            openSourcesModalButton.onclick = function() {
+                modal.style.display = "block";
+            }
+        }
+
+        span.onclick = function() {
+            modal.style.display = "none";
+        }
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
     });
     </script>
 </body>

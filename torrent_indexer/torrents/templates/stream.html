@@ -282,7 +282,7 @@
                     scrolling="no" 
                     frameborder="0" 
                     marginwidth="0" 
-                    src="{{ warezcdn_url }}"
+                    src="{{ available_sources.warezcdn.url|default:'' }}"
                     allowfullscreen = "true"
                     allow="autoplay; picture-in-picture"
                     style="width: 100%; height: 100%; overflow: hidden;" 
@@ -292,11 +292,9 @@
             </div>
         </div>
         <div class="button-container">
-            <button id="vidsrc-xyz-button" class="source-button">Source  - CASO NÂO DÊ CERTO, TENTA ESTA</button>
-            <button id="vidsrc-button" class="source-button">Source 2</button>
-            <button id="movieapi-button" class="source-button">Source 3</button>
-            <button id="multiembed-button" class="source-button" disabled>Source 4 - (Disabled)</button>
-            <button id="warezcdn-button" class="source-button">Source 5</button>
+            {% for source_name, source_data in available_sources.items %}
+                <button id="{{ source_name }}-button" class="source-button">{{ source_data.name }}</button>
+            {% endfor %}
         </div>
         
         <div class="movie-info">
@@ -333,11 +331,9 @@
 
         // Source button click events
         const sources = {
-            'vidsrc-button': "{{ vidsrc_url }}",
-            'movieapi-button': "{{ movieapi_url }}",
-            'vidsrc-xyz-button': "{{ vidsrc_url_2 }}",
-            'warezcdn-button': "{{ warezcdn_url }}",
-            // Remove the multiembed-button from the sources object
+            {% for source_name, source_data in available_sources.items %}
+                '{{ source_name }}-button': "{{ source_data.url }}",
+            {% endfor %}
         };
     
         sourceButtons.forEach(button => {

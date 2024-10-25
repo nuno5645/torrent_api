@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Movie, WatchHistory, StreamingList, StreamingListMovie, Torrent, RealDebrid, TVShow, Season, Episode, TVShowWatchHistory, TVShowStreamingList, TVShowStreamingListShow
+from .models import Movie, WatchHistory, StreamingList, StreamingListMovie, Torrent, RealDebrid, TVShow, Season, Episode, TVShowWatchHistory, TVShowStreamingList, TVShowStreamingListShow, Source
 
 # Register your models here
 admin.site.register(Movie)
@@ -14,3 +14,4 @@ admin.site.register(Episode)
 admin.site.register(TVShowWatchHistory)
 admin.site.register(TVShowStreamingList)
 admin.site.register(TVShowStreamingListShow)
+admin.site.register(Source)

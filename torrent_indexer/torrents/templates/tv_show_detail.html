@@ -53,26 +53,11 @@
         .nav-link {
             color: #8892b0;
             text-decoration: none;
+            font-size: 16px;
             transition: color 0.3s ease;
-            position: relative;
         }
 
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background-color: #64ffda;
-            transition: width 0.3s ease;
-        }
-
-        .nav-link:hover::after, .nav-link.active::after {
-            width: 100%;
-        }
-
-        .nav-link:hover, .nav-link.active {
+        .nav-link:hover {
             color: #64ffda;
         }
 
@@ -80,18 +65,10 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            cursor: pointer;
         }
 
-        .user-profile img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            transition: transform 0.3s ease;
-        }
-
-        .user-profile:hover img {
-            transform: scale(1.1);
+        .user-profile span {
+            margin-right: 10px;
         }
 
         main {
@@ -539,6 +516,13 @@
                 e.preventDefault();
                 
                 const button = this.querySelector('.watch-button');
+                const formData = new FormData(this);
+                
+                // Log form data
+                console.log('Form data:');
+                for (let [key, value] of formData.entries()) {
+                    console.log(key + ': ' + value);
+                }
                 
                 // Start button animation
                 button.textContent = 'Loading...';
@@ -548,7 +532,7 @@
                 
                 fetch(this.action, {
                     method: 'POST',
-                    body: new FormData(this),
+                    body: formData,
                 })
                 .then(response => {
                     if (response.redirected) {
@@ -559,6 +543,7 @@
                 })
                 .then(data => {
                     if (data && data.error) {
+                        console.log('Error:', data.error);
                     }
                 })
                 .finally(() => {

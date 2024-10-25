@@ -17,7 +17,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views import View
 from django.db.models import Q
-from .models import TVShowStreamingList, TVShowStreamingListShow, WatchHistory, TVShow, Season, Episode, TVShowWatchHistory
+from .models import TVShowStreamingList, TVShowStreamingListShow, WatchHistory, TVShow, Season, Episode, TVShowWatchHistory, Source
 
 # Local imports
 from .models import Movie, StreamingList, StreamingListMovie
@@ -25,6 +25,10 @@ from .models import Movie, StreamingList, StreamingListMovie
 
 from bs4 import BeautifulSoup
 
+import tmdbsimple as tmdb
+
+# At the beginning of your file, after the imports
+tmdb.API_KEY = "2480c2206d4661b89bf222cbc9c7f5ea"
 
 # ANSI color codes
 RED = '\033[91m'
@@ -201,7 +205,7 @@ class TVShowHomePageView(LoginRequiredMixin, View):
         }
                 
         log("TVShowHomePageView: Rendering TV show homepage with context", GREEN)
-        return render(request, 'tv_shows_homepage.html', context)
+        return render(request, 'tv_show_homepage.html', context)
 
     def get_or_create_tv_list(self, list_name, url):
         log(f"get_or_create_tv_list: Processing {list_name}", BLUE)
@@ -321,23 +325,17 @@ class TVShowHomePageView(LoginRequiredMixin, View):
 class MovieDetailView(LoginRequiredMixin, View):
     def get(self, request, movie_id):
         log(f"MovieDetailView: GET request received for movie ID: {movie_id}", GREEN)
-        api_key = "2480c2206d4661b89bf222cbc9c7f5ea"
-        url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}&language=en-US&append_to_response=credits"
+        
+        movie = tmdb.Movies(movie_id)
+        movie_data = movie.info(append_to_response='credits')
         
         # Fetch movie recommendations
-        recommendations_url = f"https://api.themoviedb.org/3/movie/{movie_id}/recommendations?api_key={api_key}&language=en-US&page=1"
-        log(f"MovieDetailView: Fetching movie recommendations for ID: {movie_id}", BLUE)
-        recommendations_response = requests.get(recommendations_url)
-        recommendations_data = recommendations_response.json()
+        recommendations = movie.recommendations()
 
-
-        log(f"MovieDetailView: Fetching movie details from TMDB for ID: {movie_id}", BLUE)
-        response = requests.get(url)
-        movie_data = response.json()
         context = {
             'movie': movie_data,
             'cast': movie_data.get('credits', {}).get('cast', [])[:5],  # Get first 5 cast members
-            'recommended_movies': recommendations_data.get('results', [])[:5]  # Get first 5 recommended movies
+            'recommended_movies': recommendations.get('results', [])[:5]  # Get first 5 recommended movies
         }
 
         log("MovieDetailView: Rendering movie detail page", GREEN)
@@ -365,22 +363,23 @@ class VideoStreamView(LoginRequiredMixin, View):
         title = request.GET.get('title')
         imdb_id = request.GET.get('imdb_id')
 
-        # Construct URLs based on movie_id
-         # Create the MovieAPI URL
-        movieapi_url = f"https://moviesapi.club/movie/{movie_id}" if movie_id else ''
-        vidsrc_url = f"https://vidsrc.cc/v2/embed/movie/{movie_id}"
-        vidsrc_url_2 = f"https://vidsrc.xyz/embed/movie/{movie_id}"
-        multiembed_url = f"https://multiembed.mov/?video_id={movie_id}&tmdb=1"
-        warezcdn_url = f"https://embed.warezcdn.com/filme/{imdb_id}"
-            
-       
+        # Get all active sources for movies
+        sources = Source.objects.filter(is_active=True).order_by('priority')
+
+        # Generate URLs for each source
+        available_sources = {}
+        for source in sources:
+            url = source.get_movie_url(movie_id)
+            if url:
+                available_sources[source.name.lower()] = {
+                    'name': source.name,
+                    'url': url
+                }
 
         api_key = "2480c2206d4661b89bf222cbc9c7f5ea"
         movie_url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}&language=en-US"
         movie_response = requests.get(movie_url)
         movie_data = movie_response.json()
-        
-
 
         # Record the watch history
         movie, created = Movie.objects.get_or_create(tmdb_id=movie_id)
@@ -394,18 +393,13 @@ class VideoStreamView(LoginRequiredMixin, View):
             )
             log(f"VideoStreamView: Recorded watch history for user {request.user.username} and movie {movie.title}", GREEN)
 
-        # Add movie data to the context
+        # Add movie data and available sources to the context
         context = {
-            'movieapi_url': movieapi_url,
-            'vidsrc_url': vidsrc_url,
-            'vidsrc_url_2': vidsrc_url_2,
-            'warezcdn_url': warezcdn_url,
-            'multiembed_url': multiembed_url,  # Add the new source to the context
+            'available_sources': available_sources,
             'movie': movie_data
         }
         log("VideoStreamView: Rendering stream template", GREEN)
         return render(request, 'stream.html', context)
-
 
 
 class WatchHistoryView(LoginRequiredMixin, View):
@@ -450,13 +444,10 @@ class TVShowSearchView(View):
 class TVShowDetailView(LoginRequiredMixin, View):
     def get(self, request, show_id):
         log(f"TVShowDetailView: GET request received for show ID: {show_id}", GREEN)
-        api_key = "2480c2206d4661b89bf222cbc9c7f5ea"
-        url = f"https://api.themoviedb.org/3/tv/{show_id}?api_key={api_key}&language=en-US&append_to_response=credits,seasons,external_ids"
         
-        log(f"TVShowDetailView: Fetching TV show details from TMDB for ID: {show_id}", BLUE)
-        response = requests.get(url)
-        show_data = response.json()
-                
+        tv = tmdb.TV(show_id)
+        show_data = tv.info(append_to_response='credits,external_ids')
+        
         # Fetch or create TVShow object
         tv_show, created = TVShow.objects.update_or_create(
             tmdb_id=show_data['id'],
@@ -472,7 +463,7 @@ class TVShowDetailView(LoginRequiredMixin, View):
                 'popularity': show_data['popularity'],
             }
         )
-
+        
         # Update or create seasons and episodes
         seasons_with_episodes = []
         for season_data in show_data['seasons']:
@@ -488,9 +479,7 @@ class TVShowDetailView(LoginRequiredMixin, View):
             )
             
             # Fetch episode data for each season
-            season_url = f"https://api.themoviedb.org/3/tv/{show_id}/season/{season_data['season_number']}?api_key={api_key}&language=en-US"
-            season_response = requests.get(season_url)
-            season_details = season_response.json()
+            season_details = tmdb.TV_Seasons(show_id, season_data['season_number']).info()
             
             episodes = []
             for episode_data in season_details['episodes']:
@@ -506,14 +495,9 @@ class TVShowDetailView(LoginRequiredMixin, View):
                 episode_watched = TVShowWatchHistory.objects.filter(user=request.user, episode=episode).exists()
 
                 if episode_watched:
-                    print(f"{GREEN}Episode {episode_data} has been watched{RESET}")
                     episode_data['watched'] = True
-                else:
-                    print(f"{RED}Episode {episode_data} has not been watched{RESET}")
 
                 episodes.append(episode_data)
-
-            print(episodes)
             
             season_data['episodes'] = episodes
             seasons_with_episodes.append(season_data)
@@ -532,7 +516,10 @@ class TVShowDetailView(LoginRequiredMixin, View):
         episode = request.POST.get('episode')
         imdb_id = request.POST.get('imdb_id')
         if season and episode:
-            return redirect('tv_stream', show_id=show_id, season=season, episode=episode, imdb_id=imdb_id)
+            if imdb_id:
+                return redirect('tv_stream', show_id=show_id, season=season, episode=episode, imdb_id=imdb_id)
+            else:
+                return redirect('tv_stream', show_id=show_id, season=season, episode=episode)
         else:
             return JsonResponse({'error': 'Invalid season or episode'}, status=400)
 
@@ -540,40 +527,34 @@ class TVShowDetailView(LoginRequiredMixin, View):
 
 
 class TVShowStreamView(LoginRequiredMixin, View):
-    def get(self, request, show_id, season, episode, imdb_id):
+    def get(self, request, show_id, season, episode, imdb_id=None):
         season_number = season
         episode_number = episode
 
-        # Define URLs
-        urls = {
-            'vidsrc': f"https://vidsrc.cc/v2/embed/tv/{show_id}/{season_number}/{episode_number}",
-            'vidsrc_2': f"https://vidsrc.xyz/embed/tv/{show_id}/{season_number}/{episode_number}",
-            'multiembed': f"https://multiembed.mov/?video_id={show_id}&tmdb=1&s={season_number}&e={episode_number}",
-            'warezcdn': f"https://embed.warezcdn.com/serie/{imdb_id}/{season_number}/{episode_number}",
-            'vidsrc_pro': f"https://vidsrc.pro/embed/tv/{show_id}/{season_number}/{episode_number}",
-            'moviee': f"https://moviee.tv/embed/tv/{show_id}?season={season_number}&episode={episode_number}",
-            'embedflix': f"https://www.embedflix.win/embed/tv/{show_id}?season={season_number}&episode={episode_number}"
-        }
+        # Get all active sources for TV shows
+        sources = Source.objects.filter(is_active=True, has_tv_shows=True).order_by('priority')
+        
+        print(f"{GREEN}Sources: {sources}{RESET}")
 
-        # Check availability of each source
+        # Generate URLs for each source
         available_sources = {}
-        for source, url in urls.items():
-            print(f"{BLUE}Checking availability of {source} at {url}{RESET}")
-            if self.check_source_availability(url):
-                available_sources[f'{source}_url'] = url
-                print(f"{GREEN}{source} is available at {url}{RESET}")
-            else:
-                available_sources[f'{source}_url'] = url
-                print(f"{RED}{source} is not available at {url}{RESET}")
-                
-        print(f"{GREEN}Available sources: {available_sources}{RESET}")
+        for source in sources:
+            url = source.get_tv_show_url(show_id, season_number, episode_number, imdb_id)
+            if url:
+                print(f"{BLUE}Checking availability of {source.name} at {url}{RESET}")
+                if self.check_source_availability(url):
+                    available_sources[f'{source.name.lower()}_url'] = url
+                    print(f"{GREEN}{source.name} is available at {url}{RESET}")
+                else:
+                    available_sources[f'{source.name.lower()}_url'] = url
+
+        url_list = [url for url in available_sources.values()]
+        print(f"{GREEN}Available source URLs: {url_list}{RESET}")
 
         api_key = "2480c2206d4661b89bf222cbc9c7f5ea"
         episode_url = f"https://api.themoviedb.org/3/tv/{show_id}/season/{season_number}/episode/{episode_number}?api_key={api_key}&language=en-US"
         episode_response = requests.get(episode_url)
         episode_data = episode_response.json()
-        
-        print(json.dumps(episode_data, indent=4))
 
         # Record watch history
         self.record_watch_history(show_id, season_number, episode_number)
@@ -581,17 +562,15 @@ class TVShowStreamView(LoginRequiredMixin, View):
         next_episode = self.get_next_episode(show_id, season_number, episode_number, imdb_id)
 
         context = {
-            **available_sources,
+            'url_list': url_list,
             'episode': episode_data,
             'next_episode': next_episode,
-            'imdb_id': imdb_id,  # Add this line
+            'imdb_id': imdb_id,
         }
         log("TVShowStreamView: Rendering TV show stream template", GREEN)
         return render(request, 'tv_stream.html', context)
-
+    
     def check_source_availability(self, url):
-        
-        
         error_phrases = ["Video not found", "404", "File not found"]
         error_words = [" Erro ", " Error "]
         
@@ -628,6 +607,9 @@ class TVShowStreamView(LoginRequiredMixin, View):
         except (TVShow.DoesNotExist, Season.DoesNotExist, Episode.DoesNotExist):
             log(f"TVShowStreamView: TV show, season, or episode does not exist.", YELLOW)
             
+
+
+            
     def get_next_episode(self, show_id, season_number, episode_number, imdb_id):
         try:
             tv_show = TVShow.objects.get(tmdb_id=show_id)
@@ -662,3 +644,4 @@ class TVShowStreamView(LoginRequiredMixin, View):
             return None
         except (TVShow.DoesNotExist, Season.DoesNotExist, Episode.DoesNotExist):
             return None
+

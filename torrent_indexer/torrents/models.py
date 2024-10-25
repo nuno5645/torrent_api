@@ -86,7 +86,7 @@ class RealDebrid(models.Model):
         return f"RD: {self.torrent.name}"
 class TVShow(models.Model):
     tmdb_id = models.IntegerField(unique=True)
-    imdb_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    imdb_id = models.CharField(max_length=20, null=True, blank=True)
     tvdb_id = models.IntegerField(null=True, blank=True)
     title = models.CharField(max_length=255)
     overview = models.TextField(null=True, blank=True)
@@ -149,3 +149,36 @@ class TVShowStreamingListShow(models.Model):
 
     class Meta:
         ordering = ['position']
+
+class Source(models.Model):
+    # id = models.CharField(max_length=20, primary_key=True)
+    name = models.CharField(max_length=255)
+    base_url = models.URLField()
+    has_tv_shows = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    priority = models.IntegerField(default=0)
+
+    # Fields for constructing URLs
+    uses_tmdb = models.BooleanField(default=True)
+    movie_path = models.CharField(max_length=255, blank=True)
+    tv_show_path = models.CharField(max_length=255, blank=True)
+
+    # Placeholders for dynamic parts of the URL
+    season_placeholder = models.CharField(max_length=20, default="{season}")
+    episode_placeholder = models.CharField(max_length=20, default="{episode}")
+
+    def __str__(self):
+        return f"{self.name} ({self.id})"
+
+    def get_movie_url(self, movie):
+        if not self.movie_path:
+            return None
+        id_to_use = movie
+        return f"{self.base_url}{self.movie_path.format(id=id_to_use)}"
+
+    def get_tv_show_url(self, show_id, season, episode, imdb_id=None):
+        if not self.has_tv_shows or not self.tv_show_path:
+            return None
+        id_to_use = show_id if self.uses_tmdb else imdb_id
+        return (f"{self.base_url}{self.tv_show_path}"
+                .format(id=id_to_use, season=season, episode=episode))
