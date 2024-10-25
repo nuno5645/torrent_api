@@ -286,6 +286,46 @@
             width: 120px;
         }
     }
+
+    .search-result {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 10px 15px;
+    }
+
+    .search-result:last-child {
+        border-bottom: none;
+    }
+
+    .search-result:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .search-result a {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        text-decoration: none;
+        color: var(--text-color);
+    }
+
+    .search-result img {
+        width: 45px;
+        height: 68px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+
+    .search-result .title {
+        font-weight: 600;
+        color: var(--highlight-color);
+        margin-bottom: 4px;
+    }
+
+    .search-result .info {
+        font-size: 0.9em;
+        color: var(--text-color);
+        opacity: 0.7;
+    }
 </style>
 {% endblock %}
 
@@ -330,7 +370,9 @@
         });
 
         searchInput.addEventListener('focus', function() {
-            searchResults.classList.add('active');
+            if (searchResults.children.length > 0) {
+                searchResults.classList.add('active');
+            }
         });
 
         searchButton.addEventListener('click', performSearch);
@@ -342,24 +384,57 @@
         });
 
         function performSearch() {
-            // Add your search logic here
-        }
-
-        // Scroll to top functionality
-        const scrollToTopButton = document.querySelector('.scroll-to-top');
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 300) {
-                scrollToTopButton.classList.add('visible');
-            } else {
-                scrollToTopButton.classList.remove('visible');
+            const query = searchInput.value.trim();
+            if (query.length < 3) {
+                searchResults.innerHTML = '';
+                searchResults.classList.remove('active');
+                return;
             }
-        });
-        scrollToTopButton.addEventListener('click', () => {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        });
+
+            // Determine if we're searching for movies or TV shows based on the current page
+            const isMoviePage = window.location.pathname.indexOf('tv') === -1;
+            const searchUrl = isMoviePage ? '/search/' : '/tv/search/';
+
+            fetch(`${searchUrl}?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(results => {
+                    searchResults.innerHTML = '';
+                    
+                    if (results.length === 0) {
+                        searchResults.innerHTML = '<div class="p-3 text-center">No results found</div>';
+                    } else {
+                        results.forEach(result => {
+                            const resultDiv = document.createElement('div');
+                            resultDiv.className = 'search-result p-3 hover:bg-gray-800 cursor-pointer';
+                            
+                            const year = isMoviePage ? result.release_year : result.first_air_date?.substring(0, 4);
+                            const detailUrl = isMoviePage ? `/movie/${result.id}/` : `/tv/${result.id}/`;
+                            
+                            resultDiv.innerHTML = `
+                                <a href="${detailUrl}">
+                                    <img src="https://image.tmdb.org/t/p/w92${result.poster_path}" 
+                                         alt="${result.title}" 
+                                         onerror="this.src='/static/images/no-poster.png'">
+                                    <div>
+                                        <div class="title">${result.title}</div>
+                                        <div class="info">
+                                            ${year || 'N/A'} • ⭐ ${result.vote_average?.toFixed(1) || 'N/A'}
+                                        </div>
+                                    </div>
+                                </a>
+                            `;
+                            searchResults.appendChild(resultDiv);
+                        });
+                    }
+                    
+                    searchResults.classList.add('active');
+                })
+                .catch(error => {
+                    console.error('Search error:', error);
+                    searchResults.innerHTML = '<div class="p-3 text-center">An error occurred</div>';
+                    searchResults.classList.add('active');
+                });
+        }
     });
 </script>
 {% endblock %}
